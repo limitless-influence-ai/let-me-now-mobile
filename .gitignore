@@ -1,0 +1,31 @@
+# Dependencies
+node_modules/
+
+# Expo
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+
+# Build outputs
+ios/
+android/
+
+# Env
+.env
+*.env.local
+
+# Tests
+coverage/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# EAS
+eas-build-post-install.sh

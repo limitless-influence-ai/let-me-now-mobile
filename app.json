@@ -14,7 +14,11 @@
       "adaptiveIcon": {
         "backgroundColor": "#E53935"
       },
-      "package": "com.kakotodev.lmk"
+      "package": "com.kakotodev.lmk",
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION"
+      ]
     },
     "plugins": [
       "expo-router",
@@ -24,6 +28,12 @@
         {
           "icon": "./assets/notification-icon.png",
           "color": "#E53935"
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "LMK utilise votre position pour afficher les alertes de danger autour de vous."
         }
       ],
       "expo-asset",

@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { LogBox } from 'react-native';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as Sentry from '@sentry/react-native';
@@ -22,6 +23,10 @@ const PROTECTED_TABS = ['alertes', 'profil'];
 // Initialize error reporting once, at module load (no-op when DSN is unset).
 initSentry();
 
+// Hide the in-app warning/error overlay boxes (LogBox) — keeps a clean screen
+// during demos. Logs still appear in the Metro terminal.
+LogBox.ignoreAllLogs(true);
+
 function RootLayout() {
   const { user, isLoading, setUser, setTokens, setLoading } = useAuthStore();
   const segments = useSegments();
@@ -44,6 +49,9 @@ function RootLayout() {
         if (!refreshToken) return;
         const newTokens = await authService.refresh(refreshToken);
         await SecureStore.setItemAsync('access_token', newTokens.accessToken);
+        // The backend rotates the refresh token on each refresh — persist the
+        // new one so the NEXT app launch can still restore the session.
+        await SecureStore.setItemAsync('refresh_token', newTokens.refreshToken);
         setTokens(newTokens);
         const me = await authService.fetchMe();
         setUser(me);

@@ -73,6 +73,7 @@ src/
 - **PRs** vers `dev` uniquement
 - **Commits** : Conventional Commits
 - **Linter** : ESLint + TypeScript strict
+- **CI/CD** : `.github/workflows/ci-mobile.yml` (PR → `dev`/`main` + push `dev`) : `tsc --noEmit` + `eslint . --max-warnings 0` + `jest` + `expo install --check`. Voir README.
 - **Variables d'env** : préfixées `EXPO_PUBLIC_`
 
 ## Variables d'environnement

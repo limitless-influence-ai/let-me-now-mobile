@@ -5,6 +5,7 @@ import { useAlertsStore } from '@/store/alerts.store';
 import { alertsService, mapAlert } from '@/services/alerts.service';
 import { CONFIG } from '@/constants/config';
 import { Alert, WsServerMessage } from '@/types/alert.types';
+import { DEMO_MODE } from '@/demo/mock';
 
 /** Store actions consumed by the WS message dispatcher. */
 export interface WsMessageActions {
@@ -124,6 +125,9 @@ export function useWebSocket(
   actionsRef.current = { addAlert, removeAlert, setAlerts };
 
   useEffect(() => {
+    // Demo mode runs fully offline — alerts come from the mock layer, so the
+    // realtime socket is intentionally never opened (no reconnects / Sentry noise).
+    if (DEMO_MODE) return;
     if (lat === null || lon === null) return;
 
     const url = deriveWsUrl(lat, lon);

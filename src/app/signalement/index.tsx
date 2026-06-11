@@ -26,6 +26,7 @@ import { COLORS } from '@/constants/colors';
 import { FONT, RADIUS, SPACING, TEXT, ALERT_TYPE_META, PREVIEW_ALERT_TYPE_META } from '@/constants/theme';
 import { FEATURES } from '@/constants/config';
 import { isAlertTypeVisible } from '@/lib/featureGuards';
+import { alertSubmitErrorMessage } from '@/lib/alertSubmitError';
 
 // Types en preview (non signalables) listés sous les types actifs, désactivés.
 // Chacun n'apparaît que tant que SON feature flag est off (une fois promu, il
@@ -78,18 +79,8 @@ export default function SignalementScreen() {
       });
       router.replace('/(tabs)/carte');
     } catch (err: unknown) {
-      const axErr = err as { response?: { status?: number; data?: { detail?: string } } };
-      const status = axErr?.response?.status;
-      const detail = axErr?.response?.data?.detail;
-      if (status === 401) {
-        setSubmitError('Session expirée. Reconnectez-vous.');
-      } else if (status === 403) {
-        setSubmitError(detail ?? 'Compte non vérifié ou suspendu.');
-      } else if (status === 422) {
-        setSubmitError(`Données invalides (422): ${detail ?? JSON.stringify(axErr?.response?.data)}`);
-      } else {
-        setSubmitError(`Erreur ${status ?? 'réseau'} — ${detail ?? 'impossible de créer le signalement'}`);
-      }
+      // Mapping erreur -> message clair (jamais [object Object]). [V1.5 #7] inclut le 409 limite.
+      setSubmitError(alertSubmitErrorMessage(err));
     } finally {
       setIsSubmitting(false);
     }

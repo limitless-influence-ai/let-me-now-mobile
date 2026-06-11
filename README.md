@@ -53,6 +53,20 @@ src/
 | 10 | Alertes (liste) | Connecté |
 | 11 | Profil + Paramètres | Connecté |
 
+## CI
+
+Workflow GitHub Actions `.github/workflows/ci-mobile.yml`, symétrique de la CI backend.
+
+| Déclencheur | PR vers `dev`/`main` + push sur `dev` |
+|---|---|
+| `lint-typecheck` | `npm ci` → `tsc --noEmit` → `eslint . --max-warnings 0` (TypeScript strict, zéro `any`) |
+| `test` | `npm ci` → `jest` (`npm test -- --watchAll=false --passWithNoTests`) — 73 tests |
+| `expo-check` | `expo install --check` (runner natif — `expo-github-action` ne supporte pas le mode container) |
+
+- `node_modules` mis en cache via `actions/cache` (clé = hash de `package-lock.json`).
+- Tout échec (type/lint/test/expo) **fait échouer la CI et bloque la PR**.
+- Secret optionnel : `EXPO_TOKEN` (Settings → Secrets and variables → Actions) — non requis pour `expo install --check`, utile pour les commandes Expo authentifiées (futur CD/EAS).
+
 ## Conception
 
 Diagrammes UML et wireframes : [github.com/kakotodev/LMK](https://github.com/kakotodev/LMK)

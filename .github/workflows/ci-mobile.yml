@@ -1,0 +1,71 @@
+name: CI — Mobile
+
+# Runs on every PR targeting dev or main, and on every push to dev.
+# Type check + lint + Jest + Expo doctor must all pass; any failure fails the
+# workflow and blocks the PR. Symmetric with ci-backend.yml.
+on:
+  pull_request:
+    branches: [dev, main]
+  push:
+    branches: [dev]
+
+jobs:
+  lint-typecheck:
+    name: Lint & type check
+    runs-on: ubuntu-latest
+    container:
+      image: node:20-bullseye-slim
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache node_modules
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('package-lock.json') }}
+          restore-keys: ${{ runner.os }}-node-
+
+      - run: npm ci
+      - run: npx tsc --noEmit
+      - run: npx eslint . --max-warnings 0
+
+  test:
+    name: Tests Jest
+    runs-on: ubuntu-latest
+    needs: lint-typecheck
+    container:
+      image: node:20-bullseye-slim
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache node_modules
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('package-lock.json') }}
+          restore-keys: ${{ runner.os }}-node-
+
+      - run: npm ci
+      - run: npm test -- --watchAll=false --passWithNoTests
+
+  expo-check:
+    # expo/expo-github-action ne supporte PAS le mode container — runner natif
+    # obligatoire. EXPO_TOKEN est optionnel pour `expo install --check`.
+    name: Expo doctor
+    runs-on: ubuntu-latest
+    needs: lint-typecheck
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - uses: expo/expo-github-action@v8
+        with:
+          expo-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - run: npm ci
+      - run: npx expo install --check

@@ -18,6 +18,8 @@ export const COLORS = {
   pickpocket: '#FB8C00',
   cactus: '#43A047',
   lostLuggage: '#1E3A8A', // bleu marine — type « Bagage oublié » [V1.5, preview]
+  abduction: '#B45309', // ocre — type « Enlèvement » [V2, preview]
+  childSafety: '#831843', // bordeaux — type « Comportement suspect envers mineurs » [V2, preview]
 
   // ── Neutres ──
   noir: '#1A1A1A', // CTA, texte fort

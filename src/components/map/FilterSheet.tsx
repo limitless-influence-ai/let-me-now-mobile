@@ -62,9 +62,15 @@ export function FilterSheet({ visible, isAuthenticated, onClose, onApply }: Prop
         {FEATURES.CACTUS_ENABLED && (
           <TypeRow meta={ALERT_TYPE_META.CACTUS} value={filters.cactus} onToggle={() => toggle('cactus')} />
         )}
-        {/* « Bagage oublié » [V1.5] — preview désactivée tant que le flag est off. */}
+        {/* Types en preview — désactivés tant que leur flag est off. */}
         {!FEATURES.LOST_LUGGAGE_ENABLED && (
           <TypeRow meta={PREVIEW_ALERT_TYPE_META.LOST_LUGGAGE} value={false} onToggle={() => {}} comingSoon />
+        )}
+        {!FEATURES.ABDUCTION_ENABLED && (
+          <TypeRow meta={PREVIEW_ALERT_TYPE_META.ABDUCTION} value={false} onToggle={() => {}} comingSoon />
+        )}
+        {!FEATURES.CHILD_SAFETY_ENABLED && (
+          <TypeRow meta={PREVIEW_ALERT_TYPE_META.CHILD_SAFETY} value={false} onToggle={() => {}} comingSoon />
         )}
 
         <View style={styles.divider} />

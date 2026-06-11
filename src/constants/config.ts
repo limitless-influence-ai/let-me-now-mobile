@@ -33,9 +33,17 @@ export const CONFIG = {
  *   is surfaced as a disabled "coming soon" preview (filter toggle + report
  *   type picker) and is never reportable. Promoting it requires extending the
  *   backend `alert_type` enum + the mobile `AlertType` union with LOST_LUGGAGE.
+ * - ABDUCTION_ENABLED: the "Enlèvement" alert type [V2], same disabled-preview
+ *   treatment as Bagage oublié.
+ * - CHILD_SAFETY_ENABLED: the "Comportement suspect envers mineurs" alert type
+ *   [V2] — describes an OBSERVABLE behaviour in progress, never a nominative
+ *   accusation. Same disabled-preview treatment. Promoting either requires
+ *   extending the backend `alert_type` enum + the mobile `AlertType` union.
  */
 export const FEATURES = {
   CACTUS_ENABLED: false,
   LIVE_ENABLED: false,
   LOST_LUGGAGE_ENABLED: false,
+  ABDUCTION_ENABLED: false,
+  CHILD_SAFETY_ENABLED: false,
 } as const;

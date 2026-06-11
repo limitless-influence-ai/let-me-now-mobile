@@ -90,3 +90,21 @@ EXPO_PUBLIC_MAPS_API_KEY=
 - Agression homophobe : `#8E24AA` (violet)
 - Pickpocket : `#FB8C00` (orange)
 - Cactus : `#43A047` (vert)
+
+### Types en preview (désactivés derrière feature flag)
+
+Affichés mais non signalables — pastille `ComingSoonBadge` « Bientôt », opacity 0.5
+dans le sélecteur de signalement et le bottom sheet filtres. Métadonnées dans
+`PREVIEW_ALERT_TYPE_META` (`constants/theme.ts`), flags dans `FEATURES`
+(`constants/config.ts`). Promouvoir = déplacer dans `ALERT_TYPE_META` + étendre
+l'union `AlertType` (et l'enum backend).
+
+- Bagage oublié : `#1E3A8A` (bleu marine) 🧳 — `LOST_LUGGAGE_ENABLED` [V1.5]
+- Enlèvement : `#B45309` (ocre) 🆘 — `ABDUCTION_ENABLED` [V2]
+- Comportement suspect envers mineurs : `#831843` (bordeaux) 🛡️ — `CHILD_SAFETY_ENABLED` [V2]
+
+> ⚠️ **Libellé sensible** : le type child-safety décrit un **comportement
+> observable en cours**, jamais une étiquette nominative sur une personne. Le
+> libellé est volontairement « Comportement suspect envers mineurs » — ne jamais
+> employer de terme accusatoire (ex. « pédophile »). La feature étant désactivée
+> (preview), aucun signalement réel n'est possible.

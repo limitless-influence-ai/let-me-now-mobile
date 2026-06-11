@@ -28,7 +28,15 @@ import { FEATURES } from '@/constants/config';
 import { isAlertTypeVisible } from '@/lib/featureGuards';
 
 // Types en preview (non signalables) listés sous les types actifs, désactivés.
-const PREVIEW_TYPES = Object.values(PREVIEW_ALERT_TYPE_META);
+// Chacun n'apparaît que tant que SON feature flag est off (une fois promu, il
+// passe dans la liste des types actifs et disparaît du bloc preview).
+const PREVIEW_TYPES = [
+  { meta: PREVIEW_ALERT_TYPE_META.LOST_LUGGAGE, enabled: FEATURES.LOST_LUGGAGE_ENABLED },
+  { meta: PREVIEW_ALERT_TYPE_META.ABDUCTION, enabled: FEATURES.ABDUCTION_ENABLED },
+  { meta: PREVIEW_ALERT_TYPE_META.CHILD_SAFETY, enabled: FEATURES.CHILD_SAFETY_ENABLED },
+]
+  .filter((t) => !t.enabled)
+  .map((t) => t.meta);
 
 const ALL_ALERT_TYPES: { label: string; value: AlertType }[] = [
   { label: 'Agression', value: 'AGRESSION' },
@@ -159,7 +167,7 @@ export default function SignalementScreen() {
                   );
                 }}
                 ListFooterComponent={
-                  FEATURES.LOST_LUGGAGE_ENABLED ? null : (
+                  PREVIEW_TYPES.length === 0 ? null : (
                     <>
                       {PREVIEW_TYPES.map((meta) => (
                         <View key={meta.label} style={[styles.sheetOption, styles.sheetOptionDisabled, styles.sheetFooterRow]}>

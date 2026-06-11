@@ -1,6 +1,7 @@
 /* eslint-env jest */
 import { isAlertTypeVisible, liveTabAction } from '../featureGuards';
 import { FEATURES } from '@/constants/config';
+import { PREVIEW_ALERT_TYPE_META } from '@/constants/theme';
 import type { AlertType } from '@/types/alert.types';
 
 describe('isAlertTypeVisible', () => {
@@ -38,9 +39,30 @@ describe('liveTabAction', () => {
 });
 
 describe('FEATURES defaults (MVP)', () => {
-  it('ships with Cactus, Live and Lost Luggage hidden', () => {
+  it('ships with Cactus, Live and all preview alert types hidden', () => {
     expect(FEATURES.CACTUS_ENABLED).toBe(false);
     expect(FEATURES.LIVE_ENABLED).toBe(false);
     expect(FEATURES.LOST_LUGGAGE_ENABLED).toBe(false);
+    expect(FEATURES.ABDUCTION_ENABLED).toBe(false);
+    expect(FEATURES.CHILD_SAFETY_ENABLED).toBe(false);
+  });
+});
+
+describe('PREVIEW_ALERT_TYPE_META', () => {
+  it('exposes the Enlèvement preview type with its ocre marker', () => {
+    expect(PREVIEW_ALERT_TYPE_META.ABDUCTION).toEqual({
+      color: '#B45309',
+      emoji: '🆘',
+      label: 'Enlèvement',
+    });
+  });
+
+  it('labels the child-safety type as an OBSERVABLE behaviour, never a nominative accusation', () => {
+    const { label, color } = PREVIEW_ALERT_TYPE_META.CHILD_SAFETY;
+    expect(label).toBe('Comportement suspect envers mineurs');
+    expect(color).toBe('#831843');
+    // Garde-fou : le libellé ne doit jamais étiqueter une personne.
+    expect(label.toLowerCase()).not.toContain('pédophile');
+    expect(label.toLowerCase()).not.toContain('pedophile');
   });
 });

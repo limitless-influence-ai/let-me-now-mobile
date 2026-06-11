@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/Input';
 import { Logo } from '@/components/shared/Logo';
 import { useAuthStore } from '@/store/auth.store';
 import { authService } from '@/services/auth.service';
+import { DEMO_MODE, DEMO_CREDENTIALS } from '@/demo/mock';
 import { COLORS } from '@/constants/colors';
 import { FONT, SPACING, TEXT } from '@/constants/theme';
 
@@ -16,8 +17,8 @@ export default function ConnexionScreen() {
   const router = useRouter();
   const { redirect } = useLocalSearchParams<{ redirect?: string }>();
   const { setUser, setTokens } = useAuthStore();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState(DEMO_MODE ? DEMO_CREDENTIALS.email : '');
+  const [password, setPassword] = useState(DEMO_MODE ? DEMO_CREDENTIALS.password : '');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -67,6 +68,18 @@ export default function ConnexionScreen() {
           <Logo height={64} />
           <Text style={styles.subtitle}>Connecte-toi pour signaler et voter.</Text>
         </View>
+
+        {DEMO_MODE && (
+          <View style={styles.demoBanner}>
+            <Text style={styles.demoBannerTitle}>🎬 Mode démo</Text>
+            <Text style={styles.demoBannerText}>
+              Compte de démonstration pré-rempli — appuie sur « Se connecter ».
+            </Text>
+            <Text style={styles.demoBannerCreds}>
+              {DEMO_CREDENTIALS.email} · {DEMO_CREDENTIALS.password}
+            </Text>
+          </View>
+        )}
 
         <Input
           label="Adresse email"
@@ -141,6 +154,18 @@ const styles = StyleSheet.create({
   container: { flexGrow: 1, paddingHorizontal: SPACING.screen, paddingBottom: SPACING.xl },
   brand: { alignItems: 'center', marginTop: SPACING.lg, marginBottom: SPACING.xl },
   subtitle: { ...TEXT.body, textAlign: 'center', marginTop: SPACING.base },
+  demoBanner: {
+    backgroundColor: 'rgba(79,195,199,0.1)',
+    borderWidth: 1,
+    borderColor: COLORS.turquoise,
+    borderRadius: 12,
+    padding: SPACING.base,
+    marginBottom: SPACING.lg,
+    gap: 4,
+  },
+  demoBannerTitle: { fontFamily: FONT.semibold, fontSize: 14, color: COLORS.turquoiseDark },
+  demoBannerText: { fontFamily: FONT.regular, fontSize: 12, color: COLORS.grisTexte },
+  demoBannerCreds: { fontFamily: FONT.semibold, fontSize: 12, color: COLORS.noir, marginTop: 2 },
   divider: { flexDirection: 'row', alignItems: 'center', marginVertical: SPACING.lg, gap: SPACING.md },
   dividerLine: { flex: 1, height: 1, backgroundColor: COLORS.border },
   dividerText: { ...TEXT.caption, color: COLORS.textSecondary },

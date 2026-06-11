@@ -1,16 +1,19 @@
 import { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '@/components/ui/Button';
 import { COLORS } from '@/constants/colors';
 import { RADIUS, SPACING, TEXT } from '@/constants/theme';
 import api from '@/services/api';
+import { authService } from '@/services/auth.service';
 
 export default function VerificationScreen() {
   const router = useRouter();
+  const { email } = useLocalSearchParams<{ email?: string }>();
   const [sent, setSent] = useState(false);
+  const [verifying, setVerifying] = useState(false);
 
   async function handleResend() {
     try {
@@ -19,6 +22,24 @@ export default function VerificationScreen() {
       Alert.alert('Email envoyé', 'Vérifiez votre boîte mail');
     } catch {
       Alert.alert('Erreur', 'Impossible de renvoyer l\'email');
+    }
+  }
+
+  // Dev-only shortcut: verify the account without the email link (no SMTP
+  // locally). Only rendered in development builds; the backend also rejects
+  // this endpoint in production.
+  async function handleDevVerify() {
+    if (!email) return;
+    setVerifying(true);
+    try {
+      await authService.devVerifyEmail(email);
+      Alert.alert('Compte vérifié (dev)', 'Tu peux maintenant te connecter.', [
+        { text: 'OK', onPress: () => router.replace('/auth/connexion') },
+      ]);
+    } catch {
+      Alert.alert('Erreur', 'Vérification dev impossible (backend ou ENV=production).');
+    } finally {
+      setVerifying(false);
     }
   }
 
@@ -57,6 +78,19 @@ export default function VerificationScreen() {
             disabled={sent}
           />
           <Text style={styles.note}>L&apos;écran reste en lecture seule jusqu&apos;à la confirmation.</Text>
+
+          {__DEV__ && email && (
+            <View style={styles.devBox}>
+              <Text style={styles.devLabel}>DEV · pas de serveur mail</Text>
+              <Button
+                label={verifying ? 'Vérification…' : 'Vérifier maintenant (dev)'}
+                variant="primary"
+                onPress={handleDevVerify}
+                loading={verifying}
+                disabled={verifying}
+              />
+            </View>
+          )}
         </View>
 
         <TouchableOpacity style={styles.link} onPress={() => router.replace('/auth/connexion')}>
@@ -108,6 +142,15 @@ const styles = StyleSheet.create({
   badgeText: { ...TEXT.caption, color: COLORS.cactus },
   actions: { width: '100%', alignItems: 'center' },
   note: { ...TEXT.caption, color: COLORS.textSecondary, textAlign: 'center', marginTop: SPACING.md },
+  devBox: {
+    width: '100%',
+    marginTop: SPACING.lg,
+    paddingTop: SPACING.md,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+    gap: SPACING.sm,
+  },
+  devLabel: { ...TEXT.caption, color: COLORS.textSecondary, textAlign: 'center' },
   link: { marginTop: SPACING.xl },
   linkText: { ...TEXT.caption, color: COLORS.textSecondary },
 });

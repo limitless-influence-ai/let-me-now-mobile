@@ -1,5 +1,13 @@
 import api from './api';
 import { Alert, AlertCreate } from '@/types/alert.types';
+import {
+  DEMO_MODE,
+  buildMockAlerts,
+  buildMyMockAlerts,
+  findDemoAlert,
+  registerDemoAlert,
+  removeDemoAlert,
+} from '@/demo/mock';
 
 export function mapAlert(raw: Record<string, unknown>): Alert {
   return {
@@ -21,16 +29,22 @@ export function mapAlert(raw: Record<string, unknown>): Alert {
 
 export const alertsService = {
   list: async (lat: number, lon: number, radiusM: number): Promise<Alert[]> => {
+    if (DEMO_MODE) return buildMockAlerts(lat, lon);
     const { data } = await api.get('/api/v1/alerts', { params: { lat, lon, radius_m: radiusM } });
     return (data.items ?? []).map(mapAlert);
   },
 
   get: async (id: string): Promise<Alert> => {
+    if (DEMO_MODE) {
+      const alert = findDemoAlert(id);
+      if (alert) return alert;
+    }
     const { data } = await api.get(`/api/v1/alerts/${id}`);
     return mapAlert(data);
   },
 
   create: async (payload: AlertCreate): Promise<Alert> => {
+    if (DEMO_MODE) return registerDemoAlert(payload);
     const { data } = await api.post('/api/v1/alerts', {
       type: payload.type,
       lat: payload.lat,
@@ -43,15 +57,21 @@ export const alertsService = {
   },
 
   vote: async (alertId: string, type: 'CONFIRM' | 'INVALIDATE'): Promise<void> => {
+    if (DEMO_MODE) return;
     await api.post(`/api/v1/alerts/${alertId}/votes`, { type });
   },
 
   listMine: async (): Promise<Alert[]> => {
+    if (DEMO_MODE) return buildMyMockAlerts();
     const { data } = await api.get('/api/v1/alerts/mine');
     return (data.items ?? []).map(mapAlert);
   },
 
   deleteAlert: async (id: string): Promise<void> => {
+    if (DEMO_MODE) {
+      removeDemoAlert(id);
+      return;
+    }
     await api.delete(`/api/v1/alerts/${id}`);
   },
 };

@@ -44,7 +44,7 @@ export default function InscriptionScreen() {
     setIsLoading(true);
     try {
       await authService.register(email, pseudo, password);
-      router.replace('/auth/verification');
+      router.replace({ pathname: '/auth/verification', params: { email } });
     } catch (err: unknown) {
       const status = (err as { response?: { status?: number; data?: { detail?: string } } })?.response?.status;
       const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;

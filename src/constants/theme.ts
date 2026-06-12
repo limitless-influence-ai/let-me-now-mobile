@@ -82,7 +82,7 @@ export const ALERT_TYPE_META: Record<AlertType, { color: string; emoji: string; 
  */
 export const PREVIEW_ALERT_TYPE_META = {
   LOST_LUGGAGE: { color: COLORS.lostLuggage, emoji: '🧳', label: 'Bagage oublié' },
-  ABDUCTION: { color: COLORS.abduction, emoji: '🆘', label: 'Enlèvement' },
+  ABDUCTION: { color: COLORS.abduction, emoji: '🆘', label: 'Alerte enlèvement' },
   // Libellé volontairement descriptif d'un COMPORTEMENT observable — jamais une
   // étiquette nominative sur une personne (cf. CLAUDE.md, contrainte sensible).
   CHILD_SAFETY: { color: COLORS.childSafety, emoji: '🛡️', label: 'Comportement suspect envers mineurs' },

@@ -5,6 +5,19 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Added — [V1.5 #5] Profil : score de crédibilité réel
+Fin de l'affichage hardcodé « Crédibilité : Élevée » dans le profil — remplacé
+par le vrai `user.score` retourné par l'API.
+
+- `src/lib/credibility.ts` (nouveau) — helpers purs `credibilityLabel(score)`
+  (≥ 100 « Élevée », 30–99 « Correcte », < 30 « Faible » — seuil aligné sur le
+  ban #6) et `credibilityText(score)` → « Élevée · 102 ». Logique sortie du JSX.
+- `src/app/(tabs)/profil/index.tsx` — la pastille affiche `credibilityText(user.score)` ;
+  rafraîchissement best-effort du score via `authService.fetchMe()` + `setUser`
+  à chaque focus de l'écran (les changements de score liés aux votes
+  apparaissent ; un échec laisse l'utilisateur en cache intact).
+- `src/lib/__tests__/credibility.test.ts` — 4 tests (libellés par seuil + texte).
+
 ### Added — [V1.5 #4] Vote : empêcher l'auto-vote + retrait temps réel
 Accompagne la résolution des votes backend (seuil 10 / ratio > 70 %).
 - `src/components/map/AlertDetailSheet.tsx` — nouvelle prop `isOwnAlert`. Sur sa

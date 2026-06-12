@@ -49,11 +49,11 @@ describe('FEATURES defaults (MVP)', () => {
 });
 
 describe('PREVIEW_ALERT_TYPE_META', () => {
-  it('exposes the Enlèvement preview type with its ocre marker', () => {
+  it('exposes the Alerte enlèvement preview type with its ocre marker', () => {
     expect(PREVIEW_ALERT_TYPE_META.ABDUCTION).toEqual({
       color: '#B45309',
       emoji: '🆘',
-      label: 'Enlèvement',
+      label: 'Alerte enlèvement',
     });
   });
 

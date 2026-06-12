@@ -18,6 +18,16 @@ Accompagne la résolution des votes backend (seuil 10 / ratio > 70 %).
 - **Déjà en place (confirmé)** : la réception de l'event WS `alert_removed`
   retire l'alerte de la carte (`useWebSocket` → `removeAlert`) ; l'erreur 403
   « Cannot vote on your own alert » est déjà gérée proprement dans `handleVote`.
+### Added — [V1.5 #7] Gestion propre de l'erreur « limite d'alertes actives »
+- `src/lib/alertSubmitError.ts` (nouveau) — helper pur `alertSubmitErrorMessage(err)`
+  qui traduit une erreur de création d'alerte en message clair. Gère le **409**
+  (limite d'alertes actives atteinte) avec le `detail` du backend + repli explicite,
+  et **ne rend jamais l'objet d'erreur brut** (`[object Object]`) — y compris quand
+  le `detail` FastAPI n'est pas une string (tableau de validation 422).
+- `src/app/signalement/index.tsx` — le `catch` de `handleConfirm` délègue désormais
+  au helper (logique sortie du JSX, conforme aux règles clean code).
+- `src/lib/__tests__/alertSubmitError.test.ts` — 5 tests (409 avec/sans detail,
+  detail non-string, 401, erreur réseau).
 
 ### Added — Types d'alerte en preview (Enlèvement + Comportement suspect envers mineurs)
 - 2 nouveaux types d'alerte **en preview visuelle uniquement** (désactivés derrière

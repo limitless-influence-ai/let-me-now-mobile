@@ -373,6 +373,7 @@ export default function CarteScreen() {
       <AlertDetailSheet
         alert={selectedAlert}
         isAuthenticated={isAuthenticated}
+        isOwnAlert={!!user && selectedAlert?.userId === user.id}
         voteError={voteError}
         onClose={() => { setSelectedAlert(null); setVoteError(null); autoOpenedAlertIdRef.current = null; }}
         onConfirm={(id) => handleVote(id, 'CONFIRM')}

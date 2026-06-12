@@ -5,6 +5,20 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Added — [V1.5 #4] Vote : empêcher l'auto-vote + retrait temps réel
+Accompagne la résolution des votes backend (seuil 10 / ratio > 70 %).
+- `src/components/map/AlertDetailSheet.tsx` — nouvelle prop `isOwnAlert`. Sur sa
+  propre alerte, les boutons **Confirmer/Invalider** sont masqués et remplacés
+  par une note explicite (« C'est votre alerte — vous ne pouvez pas voter
+  dessus »), en miroir du garde backend (403).
+- `src/app/(tabs)/carte/index.tsx` — passe `isOwnAlert={selectedAlert?.userId === user.id}`.
+- `src/components/map/__tests__/AlertDetailSheet.test.tsx` — 3 tests (boutons
+  visibles pour un non-auteur, masqués + note sur sa propre alerte, invitation
+  visiteur).
+- **Déjà en place (confirmé)** : la réception de l'event WS `alert_removed`
+  retire l'alerte de la carte (`useWebSocket` → `removeAlert`) ; l'erreur 403
+  « Cannot vote on your own alert » est déjà gérée proprement dans `handleVote`.
+
 ### Added — Types d'alerte en preview (Enlèvement + Comportement suspect envers mineurs)
 - 2 nouveaux types d'alerte **en preview visuelle uniquement** (désactivés derrière
   feature flag, non signalables), même traitement que « Bagage oublié » :

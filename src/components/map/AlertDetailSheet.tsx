@@ -12,6 +12,9 @@ import { isAlertTypeVisible } from '@/lib/featureGuards';
 interface Props {
   alert: Alert | null;
   isAuthenticated: boolean;
+  /** True when the current user authored this alert — the author cannot vote
+   *  on their own alert (mirrors the backend 403 guard). */
+  isOwnAlert?: boolean;
   voteError?: string | null;
   onClose: () => void;
   onConfirm: (alertId: string) => void;
@@ -33,7 +36,7 @@ function countdown(expiresAt: string | null): string | null {
   return diffMin < 60 ? `expire dans ${diffMin} min` : `expire dans ${Math.floor(diffMin / 60)} h`;
 }
 
-export function AlertDetailSheet({ alert, isAuthenticated, voteError, onClose, onConfirm, onInvalidate }: Props) {
+export function AlertDetailSheet({ alert, isAuthenticated, isOwnAlert, voteError, onClose, onConfirm, onInvalidate }: Props) {
   // Masquer la fiche pour un type désactivé par feature flag (Cactus).
   if (!alert || !isAlertTypeVisible(alert.type, FEATURES.CACTUS_ENABLED)) return null;
 
@@ -111,6 +114,12 @@ export function AlertDetailSheet({ alert, isAuthenticated, voteError, onClose, o
           <View style={styles.visitorBox}>
             <Text style={styles.visitorText}>Connecte-toi pour confirmer ou invalider cette alerte.</Text>
           </View>
+        ) : isOwnAlert ? (
+          !expired && (
+            <View style={styles.visitorBox}>
+              <Text style={styles.visitorText}>C&apos;est votre alerte — vous ne pouvez pas voter dessus.</Text>
+            </View>
+          )
         ) : (
           !expired && (
             <View style={styles.voteRow}>

@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { View, Text, TouchableOpacity, Alert, StyleSheet, ScrollView, Image } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as SecureStore from 'expo-secure-store';
 import * as ImagePicker from 'expo-image-picker';
@@ -9,12 +9,31 @@ import { Button } from '@/components/ui/Button';
 import { Toggle } from '@/components/ui/Toggle';
 import { useAuthStore } from '@/store/auth.store';
 import { authService } from '@/services/auth.service';
+import { credibilityText } from '@/lib/credibility';
 import { COLORS } from '@/constants/colors';
 import { FONT, RADIUS, SPACING, TEXT } from '@/constants/theme';
 
 export default function ProfilScreen() {
   const router = useRouter();
-  const { user, logout } = useAuthStore();
+  const { user, logout, setUser } = useAuthStore();
+
+  // Refresh the real score from the API each time the profile gains focus,
+  // so vote-driven score changes (FEATURE_SCORE_ENABLED) show up. Best-effort:
+  // a failure leaves the cached user untouched.
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      authService
+        .fetchMe()
+        .then((fresh) => {
+          if (active) setUser(fresh);
+        })
+        .catch(() => {});
+      return () => {
+        active = false;
+      };
+    }, [setUser]),
+  );
   const [isDeleting, setIsDeleting] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
@@ -120,7 +139,7 @@ export default function ProfilScreen() {
 
         <View style={styles.credibilityRow}>
           <View style={styles.credibilityChip}>
-            <Text style={styles.credibilityText}>⭐ Crédibilité : Élevée</Text>
+            <Text style={styles.credibilityText}>⭐ Crédibilité : {credibilityText(user.score)}</Text>
           </View>
           <View style={styles.versionFlag}>
             <Text style={styles.versionFlagText}>V1.5</Text>

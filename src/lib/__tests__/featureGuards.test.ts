@@ -57,9 +57,9 @@ describe('PREVIEW_ALERT_TYPE_META', () => {
     });
   });
 
-  it('labels the child-safety type as an OBSERVABLE behaviour, never a nominative accusation', () => {
+  it('labels the child-safety type around the danger to minors, never a nominative accusation', () => {
     const { label, color } = PREVIEW_ALERT_TYPE_META.CHILD_SAFETY;
-    expect(label).toBe('Comportement suspect envers mineurs');
+    expect(label).toBe('Alerte mineurs en danger');
     expect(color).toBe('#831843');
     // Garde-fou : le libellé ne doit jamais étiqueter une personne.
     expect(label.toLowerCase()).not.toContain('pédophile');

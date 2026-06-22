@@ -38,6 +38,8 @@ export const DEMO_USER: User = {
   avatarUrl: null,
   score: 142,
   isVerified: true,
+  isBanned: false,
+  bannedUntil: null,
   createdAt: '2026-01-15T09:00:00.000Z',
 };
 

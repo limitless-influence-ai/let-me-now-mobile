@@ -1,6 +1,31 @@
 import { alertSubmitErrorMessage } from '../alertSubmitError';
 
 describe('alertSubmitErrorMessage', () => {
+  it('[V1.5 #8] ACCOUNT_BANNED -> message de suspension + date de fin (format normalisé)', () => {
+    const err = {
+      response: {
+        status: 403,
+        data: {
+          error_code: 'ACCOUNT_BANNED',
+          params: { banned_until: '2026-06-24T14:32:00.000Z' },
+          message: 'Compte suspendu',
+        },
+      },
+    };
+    const msg = alertSubmitErrorMessage(err);
+    expect(msg).toContain('suspendu');
+    expect(msg).toContain('Fin du bannissement');
+    expect(msg).toContain('voter');
+    expect(msg).not.toContain('[object Object]');
+  });
+
+  it('[V1.5 #8] ACCOUNT_BANNED sans banned_until -> message sans date, sans crash', () => {
+    const err = { response: { status: 403, data: { error_code: 'ACCOUNT_BANNED' } } };
+    const msg = alertSubmitErrorMessage(err);
+    expect(msg).toContain('suspendu');
+    expect(msg).not.toContain('Fin du bannissement');
+  });
+
   it('[V1.5 #7] 409 limite atteinte -> message clair du backend (pas d\'erreur brute)', () => {
     const err = {
       response: {

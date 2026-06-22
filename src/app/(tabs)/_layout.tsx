@@ -12,6 +12,7 @@ import { COLORS } from '@/constants/colors';
 import { FONT, SHADOW } from '@/constants/theme';
 import { FEATURES } from '@/constants/config';
 import { liveTabAction } from '@/lib/featureGuards';
+import { isBanActive, banMessage } from '@/lib/banState';
 import api from '@/services/api';
 
 export default function TabsLayout() {
@@ -19,6 +20,8 @@ export default function TabsLayout() {
   const pathname = usePathname();
   const user = useAuthStore((s) => s.user);
   const isAuthenticated = !!user;
+  // [V1.5 #8] Banni → FAB grisé + signalement bloqué (vote/lecture restent OK).
+  const banned = isBanActive(user);
   const triggerLocate = useMapStore((s) => s.triggerLocate);
   const [unreadCount, setUnreadCount] = useState(0);
 
@@ -51,11 +54,16 @@ export default function TabsLayout() {
   }, [user?.id]);
 
   function handleFABPress() {
-    if (isAuthenticated) {
-      router.push('/signalement');
-    } else {
+    if (!isAuthenticated) {
       router.push('/auth/connexion');
+      return;
     }
+    // Banni : on n'ouvre pas le signalement, on explique pourquoi.
+    if (banned) {
+      Alert.alert('Compte suspendu', banMessage(user!.bannedUntil));
+      return;
+    }
+    router.push('/signalement');
   }
 
   function handleNotificationPress() {
@@ -120,7 +128,7 @@ export default function TabsLayout() {
         />
       </Tabs>
 
-      {isOnMap && <FAB onPress={handleFABPress} />}
+      {isOnMap && <FAB onPress={handleFABPress} disabled={banned} />}
 
       {isOnMap && (
         <TouchableOpacity style={styles.locateButton} onPress={triggerLocate} activeOpacity={0.85}>

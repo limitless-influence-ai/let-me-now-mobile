@@ -9,6 +9,10 @@ export interface User {
   avatarUrl: string | null;
   score: number;
   isVerified: boolean;
+  // [V1.5 #8] État de bannissement. `bannedUntil` est la date de fin (ISO) ;
+  // le ban est actif tant qu'elle est dans le futur (voir lib/banState).
+  isBanned: boolean;
+  bannedUntil: string | null;
   createdAt: string;
 }
 

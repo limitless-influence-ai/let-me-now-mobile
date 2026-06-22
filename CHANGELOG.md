@@ -5,6 +5,24 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Added — [V1.5 #8] État « banni » : signalement bloqué, vote/lecture préservés
+Contrepartie mobile du #8 backend (sanctions progressives). Quand l'utilisateur
+est banni, l'app le reflète **proactivement** sans casser le vote ni la consultation :
+- `User` porte désormais `isBanned` + `bannedUntil` (mappés depuis `/users/me`,
+  déjà exposés par le backend). `mapUser` + `DEMO_USER` mis à jour.
+- `src/lib/banState.ts` (nouveau, logique pure) : `isBanActive(user)` miroir de la
+  garde serveur `require_not_banned` (ban actif tant que `bannedUntil` est dans le
+  futur → gère l'expiration à la volée) ; `banMessage()` = raison + date de fin +
+  rappel « vous pouvez toujours voter et consulter ».
+- **FAB grisé** (`disabled`) quand banni ; le tap n'ouvre pas le signalement mais
+  affiche une `Alert` expliquant la suspension et sa date de fin.
+- `alertSubmitError.ts` lit désormais le **format d'erreur normalisé** du backend
+  (`error_code` / `params` / `message`) et traite `ACCOUNT_BANNED` (message clair +
+  `params.banned_until`) — repli sur le `detail` FastAPI historique conservé.
+- Vote et consultation **non touchés** : aucune garde ajoutée sur ces parcours.
+- Tests : `banState.test.ts` (actif/expiré/non-banni/null/date invalide, messages)
+  + 2 cas `ACCOUNT_BANNED` dans `alertSubmitError.test.ts`. Jest 100 passed.
+
 ### Added — [V1.5 #5] Profil : score de crédibilité réel
 Fin de l'affichage hardcodé « Crédibilité : Élevée » dans le profil — remplacé
 par le vrai `user.score` retourné par l'API.

@@ -16,6 +16,8 @@ function mapUser(raw: Record<string, unknown>): User {
     avatarUrl: (raw.avatar_url as string | null) ?? null,
     score: raw.score as number,
     isVerified: raw.is_verified as boolean,
+    isBanned: (raw.is_banned as boolean | undefined) ?? false,
+    bannedUntil: (raw.banned_until as string | null | undefined) ?? null,
     createdAt: raw.created_at as string,
   };
 }

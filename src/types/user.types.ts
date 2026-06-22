@@ -13,6 +13,10 @@ export interface User {
   // le ban est actif tant qu'elle est dans le futur (voir lib/banState).
   isBanned: boolean;
   bannedUntil: string | null;
+  // [V1.5] Éligibilité au changement de pseudo. `pseudoNextChangeAt` (ISO) est la
+  // date de prochaine éligibilité ; null = modifiable tout de suite (voir lib/pseudoCooldown).
+  pseudoChangedAt: string | null;
+  pseudoNextChangeAt: string | null;
   createdAt: string;
 }
 

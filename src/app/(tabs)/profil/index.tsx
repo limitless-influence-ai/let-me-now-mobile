@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { View, Text, TouchableOpacity, Alert, StyleSheet, ScrollView, Image } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Alert, StyleSheet, ScrollView, Image } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as SecureStore from 'expo-secure-store';
@@ -11,6 +11,7 @@ import { useAuthStore } from '@/store/auth.store';
 import { authService } from '@/services/auth.service';
 import { useNotifPreferences } from '@/hooks/useNotifPreferences';
 import { credibilityText } from '@/lib/credibility';
+import { canEditPseudo, cooldownMessage, isValidPseudo, PSEUDO_MIN, PSEUDO_MAX } from '@/lib/pseudoCooldown';
 import { COLORS } from '@/constants/colors';
 import { FONT, RADIUS, SPACING, TEXT } from '@/constants/theme';
 
@@ -37,6 +38,39 @@ export default function ProfilScreen() {
   );
   const [isDeleting, setIsDeleting] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+
+  // [V1.5] Édition du pseudo avec cooldown 14 j (FEATURE_PSEUDO_EDIT_ENABLED côté backend).
+  const [pseudoInput, setPseudoInput] = useState(user?.pseudo ?? '');
+  const [pseudoError, setPseudoError] = useState<string | null>(null);
+  const [pseudoSaving, setPseudoSaving] = useState(false);
+
+  async function handleSavePseudo() {
+    const next = pseudoInput.trim();
+    if (!isValidPseudo(next)) {
+      setPseudoError(`Le pseudo doit faire entre ${PSEUDO_MIN} et ${PSEUDO_MAX} caractères.`);
+      return;
+    }
+    if (next === user?.pseudo) {
+      setPseudoError('Ce pseudo est identique à l\'actuel.');
+      return;
+    }
+    setPseudoSaving(true);
+    setPseudoError(null);
+    try {
+      const updated = await authService.updatePseudo(next);
+      setUser(updated);
+    } catch (err: unknown) {
+      const data = (err as { response?: { data?: { error_code?: string; params?: { days_remaining?: number }; message?: string } } })?.response?.data;
+      if (data?.error_code === 'PSEUDO_CHANGE_TOO_SOON') {
+        const days = data.params?.days_remaining;
+        setPseudoError(days ? `Modifiable dans ${days} jour${days > 1 ? 's' : ''}.` : 'Pseudo déjà modifié récemment.');
+      } else {
+        setPseudoError(data?.message ?? 'Impossible de modifier le pseudo. Réessayez.');
+      }
+    } finally {
+      setPseudoSaving(false);
+    }
+  }
 
   // [V1.5] Préférences de notification réelles (GET au montage, PATCH à la modif).
   const { prefs, loading: prefsLoading, error: prefsError, update: updatePrefs } = useNotifPreferences();
@@ -145,6 +179,41 @@ export default function ProfilScreen() {
             <Text style={styles.versionFlagText}>V1.5</Text>
           </View>
         </View>
+      </View>
+
+      {/* Carte Pseudonyme [V1.5] */}
+      <View style={styles.card}>
+        <View style={styles.pseudoHeader}>
+          <Text style={styles.setTitle}>Pseudonyme</Text>
+          <View style={styles.versionFlag}>
+            <Text style={styles.versionFlagText}>V1.5</Text>
+          </View>
+        </View>
+        <TextInput
+          style={styles.pseudoInput}
+          value={pseudoInput}
+          onChangeText={(t) => {
+            setPseudoInput(t);
+            if (pseudoError) setPseudoError(null);
+          }}
+          maxLength={PSEUDO_MAX}
+          autoCapitalize="none"
+          placeholder="Votre pseudo"
+          placeholderTextColor={COLORS.textSecondary}
+          editable={canEditPseudo(user.pseudoNextChangeAt) && !pseudoSaving}
+        />
+        {!!pseudoError && <Text style={styles.pseudoError}>{pseudoError}</Text>}
+        {!canEditPseudo(user.pseudoNextChangeAt) && (
+          <Text style={styles.pseudoCooldown}>{cooldownMessage(user.pseudoNextChangeAt)}</Text>
+        )}
+        <Button
+          label="Modifier"
+          variant="secondary"
+          onPress={handleSavePseudo}
+          disabled={!canEditPseudo(user.pseudoNextChangeAt) || pseudoSaving}
+          loading={pseudoSaving}
+          style={styles.pseudoButton}
+        />
       </View>
 
       {/* Carte Paramètres */}
@@ -311,6 +380,23 @@ const styles = StyleSheet.create({
 
   settingsBody: { paddingBottom: SPACING.base },
   prefsError: { fontFamily: FONT.medium, fontSize: 13, color: COLORS.agression, paddingVertical: SPACING.sm },
+
+  // ── Carte Pseudonyme ──
+  pseudoHeader: { flexDirection: 'row', alignItems: 'center', gap: SPACING.md, paddingTop: SPACING.base },
+  pseudoInput: {
+    marginTop: SPACING.md,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: RADIUS.input,
+    paddingHorizontal: SPACING.base,
+    paddingVertical: SPACING.md,
+    fontFamily: FONT.medium,
+    fontSize: 15,
+    color: COLORS.noir,
+  },
+  pseudoError: { fontFamily: FONT.medium, fontSize: 13, color: COLORS.agression, marginTop: SPACING.sm },
+  pseudoCooldown: { fontFamily: FONT.medium, fontSize: 13, color: COLORS.textSecondary, marginTop: SPACING.sm },
+  pseudoButton: { marginTop: SPACING.md, marginBottom: SPACING.base },
   toggleRow: { flexDirection: 'row', alignItems: 'center', gap: SPACING.md, paddingVertical: SPACING.sm },
   dot: { width: 10, height: 10, borderRadius: 5 },
   toggleLabel: { flex: 1, fontFamily: FONT.medium, fontSize: 15, color: COLORS.grisTexte },

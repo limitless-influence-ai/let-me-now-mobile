@@ -18,6 +18,8 @@ function mapUser(raw: Record<string, unknown>): User {
     isVerified: raw.is_verified as boolean,
     isBanned: (raw.is_banned as boolean | undefined) ?? false,
     bannedUntil: (raw.banned_until as string | null | undefined) ?? null,
+    pseudoChangedAt: (raw.pseudo_changed_at as string | null | undefined) ?? null,
+    pseudoNextChangeAt: (raw.pseudo_next_change_at as string | null | undefined) ?? null,
     createdAt: raw.created_at as string,
   };
 }
@@ -42,6 +44,14 @@ export const authService = {
   fetchMe: async (): Promise<User> => {
     if (DEMO_MODE) return { ...DEMO_USER };
     const { data } = await api.get('/api/v1/users/me');
+    return mapUser(data);
+  },
+
+  // [V1.5] Met à jour le profil (ici : le pseudo). Renvoie l'utilisateur à jour
+  // (dont pseudo_changed_at / pseudo_next_change_at pour rafraîchir le cooldown).
+  updatePseudo: async (pseudo: string): Promise<User> => {
+    if (DEMO_MODE) return { ...DEMO_USER, pseudo };
+    const { data } = await api.patch('/api/v1/users/me', { pseudo });
     return mapUser(data);
   },
 

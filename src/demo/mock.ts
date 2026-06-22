@@ -40,6 +40,8 @@ export const DEMO_USER: User = {
   isVerified: true,
   isBanned: false,
   bannedUntil: null,
+  pseudoChangedAt: null,
+  pseudoNextChangeAt: null,
   createdAt: '2026-01-15T09:00:00.000Z',
 };
 

@@ -5,6 +5,22 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Added — [V1.5] Édition du pseudo avec état de cooldown (14 j)
+Contrepartie mobile du cooldown backend. L'écran Profil permet de modifier le
+pseudo et reflète l'éligibilité **sans tâtonner** :
+- `User` porte `pseudoChangedAt` + `pseudoNextChangeAt` (mappés depuis `/users/me`) ;
+  `mapUser` + `DEMO_USER` mis à jour. `authService.updatePseudo()` (PATCH /users/me).
+- `src/lib/pseudoCooldown.ts` (nouveau, pur) : `canEditPseudo` (miroir de la règle
+  serveur — éligible si `pseudoNextChangeAt` null ou passé), `daysUntilEditable`,
+  `cooldownMessage` (« Modifiable dans X jours »), `isValidPseudo` (2–50).
+- **Profil** : carte « Pseudonyme » avec champ + bouton « Modifier ». Validation
+  locale 2–50 avant envoi ; bouton **grisé + délai affiché** si cooldown en cours ;
+  succès → maj du pseudo ; refus `PSEUDO_CHANGE_TOO_SOON` → message avec le délai
+  restant (`params.days_remaining`, format normalisé).
+- Tests : `pseudoCooldown.test.ts` (éligibilité, jours restants, validation) +
+  `auth.updatePseudo.test.ts` (PATCH + mapping + propagation 409). Jest **117 passed**,
+  tsc + eslint verts.
+
 ### Added — [V1.5] Préférences de notification réelles (fin du faux-semblant)
 Les toggles du profil étaient **décoratifs** (`useState` local, rien persisté).
 Ils sont désormais câblés sur l'API (`GET` au chargement, `PATCH` à la modif).

@@ -19,6 +19,9 @@ export const CONFIG = {
   // Minimum movement (in degrees, ~55 m) before re-syncing the user's
   // position to the backend — avoids spamming on tiny GPS jitter.
   LOCATION_SYNC_MIN_DELTA_DEG: 0.0005,
+  // [V1.5] Display radius (m) of a hot-zone circle on the map. The backend cell
+  // is a geohash ~1.2 km wide; a 600 m circle reads as a soft heat halo.
+  HOTZONE_DISPLAY_RADIUS_M: 600,
 } as const;
 
 /**

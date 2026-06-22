@@ -5,6 +5,19 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Added — [V1.5] Zones chaudes sur la carte
+Affiche les « zones chaudes » remontées par le backend (cellules où 5+ alertes ont
+expiré en 24 h) sous forme de halos rouges translucides sur la carte.
+- `src/types/hotzone.types.ts` + `src/services/hotzones.service.ts` (`list()` →
+  `GET /alerts/hotzones`, mapping). Endpoint masqué (404) si la feature est éteinte
+  → géré sans crash.
+- `src/hooks/useHotzones.ts` (nouveau) : fetch au montage + re-fetch quand la liste
+  d'alertes change (expirations) ; toute erreur (404/réseau) → liste vide.
+- `carte/index.tsx` : `Circle` rouge translucide par zone (rayon
+  `CONFIG.HOTZONE_DISPLAY_RADIUS_M` = 600 m), rendu sous les marqueurs d'alerte.
+- Tests : `hotzones.service.test.ts` + `useHotzones.test.ts` (4). Jest **121 passed**,
+  tsc + eslint verts.
+
 ### Added — [V1.5] Édition du pseudo avec état de cooldown (14 j)
 Contrepartie mobile du cooldown backend. L'écran Profil permet de modifier le
 pseudo et reflète l'éligibilité **sans tâtonner** :

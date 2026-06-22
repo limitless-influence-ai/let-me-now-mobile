@@ -11,6 +11,7 @@ import { AlertDetailSheet } from '@/components/map/AlertDetailSheet';
 import { FilterSheet } from '@/components/map/FilterSheet';
 import { CactusPopup } from '@/components/cactus/CactusPopup';
 import { useAlerts } from '@/hooks/useAlerts';
+import { useHotzones } from '@/hooks/useHotzones';
 import { useLocation } from '@/hooks/useLocation';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { useAuthStore } from '@/store/auth.store';
@@ -92,6 +93,8 @@ export default function CarteScreen() {
   const { user } = useAuthStore();
   const isAuthenticated = !!user;
   const { alerts, selectedAlert, fetchAlerts, setSelectedAlert } = useAlerts();
+  // [V1.5] Zones chaudes — re-fetch quand la liste d'alertes change (expirations).
+  const hotzones = useHotzones(alerts.length);
   const { lat, lon, isApproximate } = useLocation();
   const [filterVisible, setFilterVisible] = useState(false);
   const [cactusVisible, setCactusVisible] = useState(false);
@@ -290,6 +293,18 @@ export default function CarteScreen() {
         onRegionChangeComplete={handleRegionChangeComplete}
         onPress={() => setTooltipAlert(null)}
       >
+        {/* [V1.5] Zones chaudes — halo rouge translucide sous les alertes. */}
+        {hotzones.map((zone) => (
+          <Circle
+            key={`hotzone-${zone.geohash}`}
+            center={{ latitude: zone.lat, longitude: zone.lon }}
+            radius={CONFIG.HOTZONE_DISPLAY_RADIUS_M}
+            fillColor={COLORS.agression + '22'}
+            strokeColor={COLORS.agression + '55'}
+            strokeWidth={1}
+          />
+        ))}
+
         {filteredAlerts.map((alert) => (
           <Circle
             key={`circle-${alert.id}`}

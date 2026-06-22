@@ -41,6 +41,13 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "79a71ef1-9b63-4460-928a-cf55d2e49754"
+      }
+    },
+    "owner": "kakotodev"
   }
 }

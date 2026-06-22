@@ -5,6 +5,12 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Changed — Hygiène
+- `app.json` : config **EAS** (`extra.eas.projectId` + `owner`) désormais **versionnée**
+  (elle traînait dans le working tree ; requise pour les builds EAS / APK preview).
+- `src/services/api.ts` : les logs d'intercepteur (`console.log` succès + `console.warn`
+  erreur) sont **conditionnés à `__DEV__`** → silencieux en build de production.
+
 ### Added — [V1.5] Zones chaudes sur la carte
 Affiche les « zones chaudes » remontées par le backend (cellules où 5+ alertes ont
 expiré en 24 h) sous forme de halos rouges translucides sur la carte.

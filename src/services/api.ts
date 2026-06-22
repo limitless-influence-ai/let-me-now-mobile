@@ -17,15 +17,20 @@ api.interceptors.request.use(async (config) => {
 
 api.interceptors.response.use(
   (response) => {
-    console.log(`[api] ${response.config.method?.toUpperCase()} ${response.config.url} → ${response.status}`);
+    // Dev-only request tracing — never logs in production builds.
+    if (__DEV__) {
+      console.log(`[api] ${response.config.method?.toUpperCase()} ${response.config.url} → ${response.status}`);
+    }
     return response;
   },
   async (error) => {
     const status = error.response?.status;
     const detail = error.response?.data?.detail ?? error.response?.data;
-    // console.warn (not console.error) so API failures are still logged for
-    // debugging but never surface the red full-screen error overlay in the app.
-    console.warn(`[api] ${error.config?.method?.toUpperCase()} ${error.config?.url} → ${status ?? 'ERR'} | ${JSON.stringify(detail)}`);
+    // Dev-only: log API failures for debugging (console.warn, not console.error,
+    // so it never surfaces the red full-screen error overlay). Silent in prod.
+    if (__DEV__) {
+      console.warn(`[api] ${error.config?.method?.toUpperCase()} ${error.config?.url} → ${status ?? 'ERR'} | ${JSON.stringify(detail)}`);
+    }
 
     const original = error.config;
     if (error.response?.status === 401 && !original._retry && !original.url?.includes('/auth/refresh')) {

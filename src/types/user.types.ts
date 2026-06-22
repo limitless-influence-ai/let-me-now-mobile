@@ -20,3 +20,13 @@ export interface AuthTokens {
   accessToken: string;
   refreshToken: string;
 }
+
+// [V1.5] Préférences de notification (persistées côté backend, derrière
+// FEATURE_NOTIF_PREFERENCES_ENABLED). notifRadiusM borné 300–1000.
+export interface NotifPreferences {
+  notifAgression: boolean;
+  notifHomophobe: boolean;
+  notifPickpocket: boolean;
+  notifCactus: boolean;
+  notifRadiusM: number;
+}

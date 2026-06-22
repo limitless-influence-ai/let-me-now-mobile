@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/Button';
 import { Toggle } from '@/components/ui/Toggle';
 import { useAuthStore } from '@/store/auth.store';
 import { authService } from '@/services/auth.service';
+import { useNotifPreferences } from '@/hooks/useNotifPreferences';
 import { credibilityText } from '@/lib/credibility';
 import { COLORS } from '@/constants/colors';
 import { FONT, RADIUS, SPACING, TEXT } from '@/constants/theme';
@@ -37,11 +38,10 @@ export default function ProfilScreen() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
-  // Toggles préférences notifications — purement visuels [V1.5]
-  const [notifAgression, setNotifAgression] = useState(true);
-  const [notifHomophobe, setNotifHomophobe] = useState(true);
-  const [notifPickpocket, setNotifPickpocket] = useState(false);
-  const [radius, setRadius] = useState(500);
+  // [V1.5] Préférences de notification réelles (GET au montage, PATCH à la modif).
+  const { prefs, loading: prefsLoading, error: prefsError, update: updatePrefs } = useNotifPreferences();
+  // Valeur affichée du rayon pendant le glissement (avant le PATCH au relâcher).
+  const [radiusPreview, setRadiusPreview] = useState<number | null>(null);
 
   async function handleLogout() {
     const refreshToken = await SecureStore.getItemAsync('refresh_token');
@@ -172,37 +172,56 @@ export default function ProfilScreen() {
 
         {settingsOpen && (
           <View style={styles.settingsBody}>
+            {!!prefsError && <Text style={styles.prefsError}>{prefsError}</Text>}
+
             <View style={styles.toggleRow}>
               <View style={[styles.dot, { backgroundColor: COLORS.agression }]} />
               <Text style={styles.toggleLabel}>Agression</Text>
-              <Toggle value={notifAgression} onValueChange={setNotifAgression} />
+              <Toggle
+                value={prefs.notifAgression}
+                onValueChange={(v) => updatePrefs({ notifAgression: v })}
+                disabled={prefsLoading}
+              />
             </View>
 
             <View style={styles.toggleRow}>
               <View style={[styles.dot, { backgroundColor: COLORS.homophobe }]} />
               <Text style={styles.toggleLabel}>Agression homophobe</Text>
-              <Toggle value={notifHomophobe} onValueChange={setNotifHomophobe} />
+              <Toggle
+                value={prefs.notifHomophobe}
+                onValueChange={(v) => updatePrefs({ notifHomophobe: v })}
+                disabled={prefsLoading}
+              />
             </View>
 
             <View style={styles.toggleRow}>
               <View style={[styles.dot, { backgroundColor: COLORS.pickpocket }]} />
               <Text style={styles.toggleLabel}>Pickpocket</Text>
-              <Toggle value={notifPickpocket} onValueChange={setNotifPickpocket} />
+              <Toggle
+                value={prefs.notifPickpocket}
+                onValueChange={(v) => updatePrefs({ notifPickpocket: v })}
+                disabled={prefsLoading}
+              />
             </View>
 
             <View style={styles.divider} />
 
             <View style={styles.radiusRow}>
               <Text style={styles.toggleLabel}>Rayon de notification</Text>
-              <Text style={styles.radiusValue}>{Math.round(radius)} m</Text>
+              <Text style={styles.radiusValue}>{radiusPreview ?? Math.round(prefs.notifRadiusM)} m</Text>
             </View>
             <Slider
               style={styles.slider}
               minimumValue={300}
               maximumValue={1000}
               step={50}
-              value={radius}
-              onValueChange={setRadius}
+              value={prefs.notifRadiusM}
+              onValueChange={(v) => setRadiusPreview(Math.round(v))}
+              onSlidingComplete={(v) => {
+                setRadiusPreview(null);
+                updatePrefs({ notifRadiusM: Math.round(v) });
+              }}
+              disabled={prefsLoading}
               minimumTrackTintColor={COLORS.turquoise}
               maximumTrackTintColor={COLORS.border}
               thumbTintColor={COLORS.turquoiseDark}
@@ -291,6 +310,7 @@ const styles = StyleSheet.create({
   setTitle: { fontFamily: FONT.semibold, fontSize: 15, color: COLORS.noir },
 
   settingsBody: { paddingBottom: SPACING.base },
+  prefsError: { fontFamily: FONT.medium, fontSize: 13, color: COLORS.agression, paddingVertical: SPACING.sm },
   toggleRow: { flexDirection: 'row', alignItems: 'center', gap: SPACING.md, paddingVertical: SPACING.sm },
   dot: { width: 10, height: 10, borderRadius: 5 },
   toggleLabel: { flex: 1, fontFamily: FONT.medium, fontSize: 15, color: COLORS.grisTexte },

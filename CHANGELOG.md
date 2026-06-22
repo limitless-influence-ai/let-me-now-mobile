@@ -5,6 +5,24 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Added — [V1.5] Préférences de notification réelles (fin du faux-semblant)
+Les toggles du profil étaient **décoratifs** (`useState` local, rien persisté).
+Ils sont désormais câblés sur l'API (`GET` au chargement, `PATCH` à la modif).
+- `src/services/preferences.service.ts` (nouveau) : `get()` / `update(partiel)`
+  contre `/api/v1/users/me/preferences`, mapping snake_case ↔ camelCase ; le PATCH
+  n'envoie que les champs modifiés ; mode démo renvoie des défauts.
+- `src/hooks/useNotifPreferences.ts` (nouveau) : charge au montage, **mise à jour
+  optimiste** avec **revert + message d'erreur** (format normalisé backend) si le
+  PATCH échoue. Logique sortie du JSX (clean code).
+- `profil/index.tsx` : 3 toggles (Agression / Homophobe / Pickpocket) + slider rayon
+  branchés sur le hook ; rayon `PATCH` au relâcher (`onSlidingComplete`, aperçu live
+  pendant le glissement) ; ligne d'erreur affichée ; toggles `disabled` en chargement.
+  Suppression des `useState` non persistés.
+- `NotifPreferences` ajouté à `types/user.types.ts`.
+- Tests : `preferences.service.test.ts` (mapping GET + payload PATCH partiel) +
+  `useNotifPreferences.test.ts` (chargement reflète le GET, modif → PATCH persisté,
+  échec → revert + erreur). Jest **105 passed**, tsc + eslint verts.
+
 ### Added — [V1.5 #8] État « banni » : signalement bloqué, vote/lecture préservés
 Contrepartie mobile du #8 backend (sanctions progressives). Quand l'utilisateur
 est banni, l'app le reflète **proactivement** sans casser le vote ni la consultation :

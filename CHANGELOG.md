@@ -5,6 +5,25 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Fixed — Réception des notifications push (chaînon manquant)
+L'app enregistrait son push token mais **ne traitait aucune notification entrante** :
+aucun handler, aucun listener → une notif livrée n'était jamais exploitée (pas
+d'affichage premier-plan, pas de navigation au tap). De plus le token n'était
+**jamais** récupéré hors build EAS (projectId absent → échec silencieux).
+- `(tabs)/_layout.tsx` : `getExpoPushTokenAsync({ projectId: CONFIG.EAS_PROJECT_ID })`
+  — sans `projectId` l'appel échoue en dev client / bare et **aucun token** n'est
+  envoyé au backend. `EAS_PROJECT_ID` ajouté à `constants/config.ts` (miroir de
+  `app.json`, valeur publique).
+- `src/lib/pushNotifications.ts` (nouveau, pur) : `FOREGROUND_NOTIFICATION_BEHAVIOR`
+  (banner + list + son, pas de badge OS) et `pushTapTarget(data)` (route de
+  destination au tap → liste des alertes, prêt à brancher par type plus tard).
+- `src/hooks/usePushNotifications.ts` (nouveau) : `setNotificationHandler` (présentation
+  premier-plan) + `addNotificationReceivedListener` (point d'extension refresh) +
+  `addNotificationResponseReceivedListener` (tap → `router.push` vers la liste,
+  jamais de crash : erreur reportée à Sentry). Monté app-wide dans le root `_layout.tsx`.
+- Tests : `pushNotifications.test.ts` (comportement premier-plan + routage du tap). 4.
+  Jest **125 passed**, tsc + eslint verts.
+
 ### Changed — Hygiène
 - `app.json` : config **EAS** (`extra.eas.projectId` + `owner`) désormais **versionnée**
   (elle traînait dans le working tree ; requise pour les builds EAS / APK preview).

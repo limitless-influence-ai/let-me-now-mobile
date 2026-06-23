@@ -22,6 +22,10 @@ export const CONFIG = {
   // [V1.5] Display radius (m) of a hot-zone circle on the map. The backend cell
   // is a geohash ~1.2 km wide; a 600 m circle reads as a soft heat halo.
   HOTZONE_DISPLAY_RADIUS_M: 600,
+  // EAS project id — required by `getExpoPushTokenAsync({ projectId })` outside
+  // an EAS build (dev client / bare). Mirrors `app.json` extra.eas.projectId.
+  // Public value (not a secret), kept here so the push-token call is explicit.
+  EAS_PROJECT_ID: '79a71ef1-9b63-4460-928a-cf55d2e49754',
 } as const;
 
 /**

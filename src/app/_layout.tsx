@@ -14,6 +14,7 @@ import { useAuthStore } from '@/store/auth.store';
 import * as SecureStore from 'expo-secure-store';
 import { authService } from '@/services/auth.service';
 import { useLocationSync } from '@/hooks/useLocationSync';
+import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { initSentry } from '@/lib/sentry';
 import { COLORS } from '@/constants/colors';
 
@@ -41,6 +42,10 @@ function RootLayout() {
 
   // Sync the user's position to the backend for proximity push geo-filtering.
   useLocationSync();
+
+  // Wire push reception (foreground handler + received/tap listeners). Mounted
+  // app-wide so a notification tap navigates regardless of the current screen.
+  usePushNotifications();
 
   useEffect(() => {
     async function restoreSession() {

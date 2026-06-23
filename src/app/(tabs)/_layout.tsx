@@ -10,7 +10,7 @@ import { useAuthStore } from '@/store/auth.store';
 import { useMapStore } from '@/store/map.store';
 import { COLORS } from '@/constants/colors';
 import { FONT, SHADOW } from '@/constants/theme';
-import { FEATURES } from '@/constants/config';
+import { CONFIG, FEATURES } from '@/constants/config';
 import { liveTabAction } from '@/lib/featureGuards';
 import { isBanActive, banMessage } from '@/lib/banState';
 import api from '@/services/api';
@@ -35,9 +35,13 @@ export default function TabsLayout() {
       if (status !== 'granted') return;
       let token: string;
       try {
-        token = (await Notifications.getExpoPushTokenAsync()).data;
+        // projectId is REQUIRED outside an EAS build (dev client / bare) —
+        // without it getExpoPushTokenAsync throws and no token is ever sent.
+        token = (
+          await Notifications.getExpoPushTokenAsync({ projectId: CONFIG.EAS_PROJECT_ID })
+        ).data;
       } catch {
-        return; // pas de projectId EAS en dev local — push notifications désactivées
+        return; // récupération du token impossible (ex: simulateur) — push désactivées
       }
       await api.patch('/api/v1/users/me/push-token', { expo_push_token: token });
     })();

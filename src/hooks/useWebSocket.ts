@@ -1,8 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { AppState, AppStateStatus } from 'react-native';
+import * as SecureStore from 'expo-secure-store';
 import * as Sentry from '@sentry/react-native';
 import { useAlertsStore } from '@/store/alerts.store';
+import { useAuthStore } from '@/store/auth.store';
 import { alertsService, mapAlert } from '@/services/alerts.service';
+import { authService } from '@/services/auth.service';
 import { CONFIG } from '@/constants/config';
 import { Alert, WsServerMessage } from '@/types/alert.types';
 import { DEMO_MODE } from '@/demo/mock';
@@ -64,7 +67,7 @@ export function handleWsMessage(raw: string, actions: WsMessageActions): void {
  * Returns `null` when neither env var yields a usable base, so the caller can
  * guard against opening a socket to an invalid URL.
  */
-export function deriveWsUrl(lat: number, lon: number): string | null {
+export function deriveWsUrl(lat: number, lon: number, token?: string | null): string | null {
   const explicit = process.env.EXPO_PUBLIC_WS_URL;
   const base =
     explicit && explicit.length > 0
@@ -73,7 +76,10 @@ export function deriveWsUrl(lat: number, lon: number): string | null {
 
   if (!base) return null;
 
-  return `${base}/api/v1/ws/alerts?lat=${lat}&lon=${lon}`;
+  // Real-time is auth-only: the access JWT is sent as a query param. The backend
+  // scrubs `token=` from its access logs (RedactTokenFilter).
+  const tokenParam = token ? `&token=${encodeURIComponent(token)}` : '';
+  return `${base}/api/v1/ws/alerts?lat=${lat}&lon=${lon}${tokenParam}`;
 }
 
 /**
@@ -89,6 +95,11 @@ export function computeReconnectDelay(attempt: number): number {
 
 /** Close code used to flag a deliberate, no-reconnect close. */
 const INTENTIONAL_CLOSE_CODE = 1000;
+/**
+ * Server close code when the access JWT is missing/invalid/expired
+ * (`WS_AUTH_FAILED_CODE` backend). The hook refreshes the token, then reconnects.
+ */
+const WS_AUTH_FAILED_CODE = 4401;
 const APP_BACKGROUND_REASON = 'app_background';
 
 /**
@@ -118,6 +129,10 @@ export function useWebSocket(
   const intentionalClose = useRef(false);
 
   const { addAlert, removeAlert, setAlerts } = useAlertsStore();
+  // Real-time is reserved for authenticated users (visitors use REST). Gate the
+  // socket on auth PRESENCE so login/logout opens/closes it — not on every token
+  // refresh, which would needlessly churn the connection.
+  const isAuthenticated = useAuthStore((s) => !!s.user);
 
   // Keep store actions / coordinates reachable from the long-lived connect
   // closure without re-subscribing the effect on every render.
@@ -128,6 +143,10 @@ export function useWebSocket(
     // Demo mode runs fully offline — alerts come from the mock layer, so the
     // realtime socket is intentionally never opened (no reconnects / Sentry noise).
     if (DEMO_MODE) return;
+    // Visitors never open the socket: no WS, no error. The map loads via REST
+    // (carte screen) and the user refreshes manually. Logging in re-runs this
+    // effect (isAuthenticated dep) and opens the live stream.
+    if (!isAuthenticated) return;
     if (lat === null || lon === null) return;
 
     const url = deriveWsUrl(lat, lon);
@@ -196,6 +215,24 @@ export function useWebSocket(
       }
     };
 
+    // On a WS_AUTH_FAILED_CODE close, refresh the access token (the WS is
+    // long-lived but the access token expires in 1h) so the NEXT connect carries
+    // a fresh token. Best-effort: a failure just leaves the old token in place,
+    // and the backoff reconnect retries — other API calls will eventually log out
+    // a truly dead session.
+    const refreshAccessToken = async (): Promise<void> => {
+      try {
+        const rt = await SecureStore.getItemAsync('refresh_token');
+        if (rt === null) return;
+        const tokens = await authService.refresh(rt);
+        await SecureStore.setItemAsync('access_token', tokens.accessToken);
+        await SecureStore.setItemAsync('refresh_token', tokens.refreshToken);
+        useAuthStore.getState().setTokens(tokens);
+      } catch (err) {
+        Sentry.captureException(err);
+      }
+    };
+
     const connect = (): void => {
       // Tear down any prior socket/timers before opening a new one.
       clearReconnectTimer();
@@ -203,7 +240,9 @@ export function useWebSocket(
       intentionalClose.current = false;
 
       logTransition(attempt.current === 0 ? 'connecting' : 'reconnecting');
-      const socket = new WebSocket(url);
+      // Read the freshest access token at connect time (refresh updates the store).
+      const token = useAuthStore.getState().tokens?.accessToken ?? null;
+      const socket = new WebSocket(deriveWsUrl(lat, lon, token) ?? url);
       ws.current = socket;
 
       socket.onopen = () => {
@@ -233,7 +272,7 @@ export function useWebSocket(
         );
       };
 
-      socket.onclose = () => {
+      socket.onclose = (event) => {
         // A superseded socket's deferred onclose must not schedule a reconnect:
         // the current socket (if any) is already driving the connection.
         if (ws.current !== socket) return;
@@ -243,6 +282,12 @@ export function useWebSocket(
           // Deliberate close (unmount / background) — do not reconnect.
           logTransition('closed');
           return;
+        }
+        if (event?.code === WS_AUTH_FAILED_CODE) {
+          // Token rejected (expired/invalid): refresh it so the next connect
+          // carries a fresh token, then fall through to the normal backoff.
+          logTransition('auth_failed');
+          void refreshAccessToken();
         }
         const delay = computeReconnectDelay(attempt.current);
         attempt.current += 1;
@@ -284,7 +329,7 @@ export function useWebSocket(
       ws.current?.close(INTENTIONAL_CLOSE_CODE, 'unmount');
       ws.current = null;
     };
-  }, [lat, lon, radiusM]);
+  }, [lat, lon, radiusM, isAuthenticated]);
 
   return { isConnected };
 }

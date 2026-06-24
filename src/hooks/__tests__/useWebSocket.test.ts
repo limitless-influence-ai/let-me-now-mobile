@@ -38,9 +38,31 @@ jest.mock('react-native', () => ({
   },
 }));
 
+// Auth store: callable selector + getState(), driven by a mutable holder.
+const mockAuthState: { current: Record<string, unknown> } = { current: {} };
+jest.mock('@/store/auth.store', () => ({
+  useAuthStore: Object.assign(
+    (selector: (s: Record<string, unknown>) => unknown) => selector(mockAuthState.current),
+    { getState: () => mockAuthState.current },
+  ),
+}));
+
+const mockGetItem = jest.fn();
+const mockSetItem = jest.fn();
+jest.mock('expo-secure-store', () => ({
+  getItemAsync: (...a: unknown[]) => mockGetItem(...a),
+  setItemAsync: (...a: unknown[]) => mockSetItem(...a),
+}));
+
+const mockRefresh = jest.fn();
+jest.mock('@/services/auth.service', () => ({
+  authService: { refresh: (...a: unknown[]) => mockRefresh(...a) },
+}));
+
 import * as Sentry from '@sentry/react-native';
 import {
   computeReconnectDelay,
+  deriveWsUrl,
   handleWsMessage,
   useWebSocket,
 } from '../useWebSocket';
@@ -61,7 +83,7 @@ class MockWebSocket {
   onopen: (() => void) | null = null;
   onmessage: ((e: { data: string }) => void) | null = null;
   onerror: ((e: unknown) => void) | null = null;
-  onclose: (() => void) | null = null;
+  onclose: ((e?: { code?: number }) => void) | null = null;
   send = jest.fn();
   closeCode: number | undefined;
   closeReason: string | undefined;
@@ -93,6 +115,15 @@ beforeEach(() => {
   appStateHandler = null;
   jest.clearAllMocks();
   mockList.mockResolvedValue([]);
+  // Default: an authenticated user with a token, so the socket opens.
+  mockAuthState.current = {
+    user: { id: 'u1' },
+    tokens: { accessToken: 'tok-123', refreshToken: 'rt-1' },
+    setTokens: jest.fn(),
+  };
+  mockGetItem.mockResolvedValue('rt-1');
+  mockSetItem.mockResolvedValue(undefined);
+  mockRefresh.mockResolvedValue({ accessToken: 'tok-new', refreshToken: 'rt-2' });
   (global as unknown as { WebSocket: unknown }).WebSocket = MockWebSocket;
 });
 
@@ -102,6 +133,7 @@ afterEach(() => {
 });
 
 const ENV_URL = 'ws://test.local';
+const WS_AUTH_FAILED_CODE = 4401;
 beforeAll(() => {
   process.env.EXPO_PUBLIC_WS_URL = ENV_URL;
 });
@@ -116,6 +148,21 @@ describe('computeReconnectDelay', () => {
     expect(computeReconnectDelay(4)).toBe(16000);
     expect(computeReconnectDelay(100)).toBe(CONFIG.WS_RECONNECT_MAX_DELAY_MS);
     expect(computeReconnectDelay(100)).toBe(30000);
+  });
+});
+
+// --- deriveWsUrl: token query param -------------------------------------
+
+describe('deriveWsUrl', () => {
+  it('appends the access token as a query param when provided', () => {
+    expect(deriveWsUrl(48.85, 2.35, 'abc.def.sig')).toBe(
+      `${ENV_URL}/api/v1/ws/alerts?lat=48.85&lon=2.35&token=abc.def.sig`,
+    );
+  });
+
+  it('omits the token param when none is provided', () => {
+    expect(deriveWsUrl(1, 2)).toBe(`${ENV_URL}/api/v1/ws/alerts?lat=1&lon=2`);
+    expect(deriveWsUrl(1, 2, null)).toBe(`${ENV_URL}/api/v1/ws/alerts?lat=1&lon=2`);
   });
 });
 
@@ -335,5 +382,56 @@ describe('useWebSocket', () => {
       jest.advanceTimersByTime(CONFIG.WS_RECONNECT_MAX_DELAY_MS * 2);
     });
     expect(sockets).toHaveLength(1);
+  });
+
+  // --- auth-only behaviour ----------------------------------------------
+
+  it('sends the JWT in the socket URL when authenticated', () => {
+    renderHook(() => useWebSocket(48.85, 2.35));
+    expect(sockets).toHaveLength(1);
+    expect(sockets[0].url).toContain('token=tok-123');
+  });
+
+  it('does NOT open a socket for a visitor (unauthenticated) and shows no error', () => {
+    mockAuthState.current = { user: null, tokens: null, setTokens: jest.fn() };
+    renderHook(() => useWebSocket(48.85, 2.35));
+    expect(sockets).toHaveLength(0);
+    expect(Sentry.captureException).not.toHaveBeenCalled();
+  });
+
+  it('opens the socket when a visitor logs in (visitor → connected)', () => {
+    mockAuthState.current = { user: null, tokens: null, setTokens: jest.fn() };
+    const { rerender } = renderHook(() => useWebSocket(48.85, 2.35));
+    expect(sockets).toHaveLength(0);
+
+    // Log in: the auth selector now returns true → effect re-runs → connect.
+    mockAuthState.current = {
+      user: { id: 'u1' },
+      tokens: { accessToken: 'tok-123', refreshToken: 'rt-1' },
+      setTokens: jest.fn(),
+    };
+    rerender(undefined);
+    expect(sockets).toHaveLength(1);
+    expect(sockets[0].url).toContain('token=tok-123');
+  });
+
+  it('refreshes the token and reconnects on an auth-failed close (4401)', async () => {
+    renderHook(() => useWebSocket(48.85, 2.35));
+    await act(async () => {
+      sockets[0].open();
+    });
+
+    // Server rejected the token (expired/invalid) → close 4401.
+    await act(async () => {
+      sockets[0].onclose?.({ code: WS_AUTH_FAILED_CODE });
+    });
+    // A refresh was attempted with the stored refresh token.
+    expect(mockRefresh).toHaveBeenCalledWith('rt-1');
+
+    // Reconnect is still scheduled via the normal backoff.
+    act(() => {
+      jest.advanceTimersByTime(CONFIG.WS_RECONNECT_BASE_DELAY_MS);
+    });
+    expect(sockets).toHaveLength(2);
   });
 });

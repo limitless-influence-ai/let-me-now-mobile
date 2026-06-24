@@ -49,6 +49,12 @@ api.interceptors.response.use(
           if (data.refresh_token) {
             await SecureStore.setItemAsync('refresh_token', data.refresh_token);
           }
+          // Keep the in-memory store in sync so anything reading the token
+          // synchronously (e.g. the WebSocket connect) sees the refreshed value.
+          useAuthStore.getState().setTokens({
+            accessToken: data.access_token,
+            refreshToken: data.refresh_token ?? refreshToken,
+          });
           original.headers.Authorization = `Bearer ${data.access_token}`;
           return api(original);
         } catch {

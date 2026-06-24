@@ -203,7 +203,13 @@ export default function CarteScreen() {
       if (pos && mapRef.current) {
         mapRef.current.animateToRegion({ latitude: pos.lat, longitude: pos.lon, ...REGION_DELTA }, 500);
       }
-    }, []),
+      // Re-fetch on focus so a visitor (no live WS) gets fresh alerts each time
+      // they return to the map; harmless for connected users (the WS keeps them
+      // live, and the WS itself re-fetches on (re)connect).
+      if (pos) {
+        fetchAlerts(pos.lat, pos.lon, CONFIG.DEFAULT_RADIUS_M);
+      }
+    }, [fetchAlerts]),
   );
 
   function handleMarkerPress(alert: Alert) {

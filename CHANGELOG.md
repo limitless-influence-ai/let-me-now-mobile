@@ -5,6 +5,30 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Changed — WebSocket authentifié (connectés) + fallback REST (visiteurs)
+Contrepartie mobile de l'auth-only WS backend. Le temps réel est **réservé aux
+utilisateurs connectés** ; le visiteur consulte la carte en REST sans live.
+- `useWebSocket` n'ouvre le socket **que si authentifié** (`useAuthStore` →
+  présence d'un user). Un **visiteur n'ouvre aucun socket** et **aucune erreur**
+  n'est remontée (la carte charge via `GET /alerts`). La connexion est gardée sur
+  la **présence d'auth** (login/logout (ré)ouvre/ferme), pas sur le token (évite de
+  churner à chaque refresh).
+- **JWT envoyé à l'ouverture** : `deriveWsUrl(lat, lon, token)` ajoute `&token=`
+  (lu en synchrone depuis le store au moment du connect). Le backend scrubbe
+  `token=` de ses logs.
+- **Expiration en session** : sur un close `4401` (`WS_AUTH_FAILED_CODE`), le hook
+  **rafraîchit l'access token** (`authService.refresh` + persistance SecureStore +
+  store) puis reconnecte via le backoff — cohérent avec le refresh glissant.
+- **Transition visiteur → connecté** : la connexion rouvre le WS proprement (dep
+  `isAuthenticated`).
+- `api.ts` : le refresh silencieux met aussi à jour le **store en mémoire**
+  (`setTokens`) pour que le WS lise toujours le token frais.
+- `carte/index.tsx` : **re-fetch au focus** de l'écran (le visiteur rafraîchit
+  manuellement en revenant sur la carte ; sans effet pour le connecté, déjà live).
+- Tests : token dans l'URL si connecté, pas de socket ni erreur pour le visiteur,
+  transition visiteur→connecté ouvre le WS, close 4401 → refresh + reconnexion.
+  Jest **131 passed**, tsc + eslint verts.
+
 ### Fixed — Réception des notifications push (chaînon manquant)
 L'app enregistrait son push token mais **ne traitait aucune notification entrante** :
 aucun handler, aucun listener → une notif livrée n'était jamais exploitée (pas

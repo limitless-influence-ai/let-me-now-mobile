@@ -1,5 +1,5 @@
 import api from './api';
-import { Alert, AlertCreate } from '@/types/alert.types';
+import { Alert, AlertCreate, VoteType } from '@/types/alert.types';
 import { buildPhotoFormData, PickedImage } from '@/lib/photoUpload';
 import {
   DEMO_MODE,
@@ -71,6 +71,18 @@ export const alertsService = {
   vote: async (alertId: string, type: 'CONFIRM' | 'INVALIDATE'): Promise<void> => {
     if (DEMO_MODE) return;
     await api.post(`/api/v1/alerts/${alertId}/votes`, { type });
+  },
+
+  // [V1.5] Vote courant de l'utilisateur sur une alerte (null s'il n'a pas voté,
+  // ou si la feature est éteinte → 404). Sert à afficher l'état dans la fiche.
+  getMyVote: async (alertId: string): Promise<VoteType | null> => {
+    if (DEMO_MODE) return null;
+    try {
+      const { data } = await api.get(`/api/v1/alerts/${alertId}/votes/me`);
+      return (data?.type as VoteType | null) ?? null;
+    } catch {
+      return null;
+    }
   },
 
   listMine: async (): Promise<Alert[]> => {

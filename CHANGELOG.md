@@ -5,6 +5,18 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Added/Fixed — Retour visuel du vote + photo affichée en entier `[V1.5]`
+- **Vote** : la fiche d'alerte récupère le vote courant (`alertsService.getMyVote`
+  → `GET /alerts/{id}/votes/me`) à l'ouverture et **met en évidence le bouton choisi**
+  (« Vous avez confirmé/invalidé — touchez pour changer »). Le vote est appliqué de
+  façon **optimiste sans fermer la fiche** (revert si l'envoi échoue) → fini
+  l'impression de « voter plusieurs fois ». Parsing d'erreur corrigé pour lire le
+  format normalisé (`error_code`) au lieu de `detail` (jamais présent).
+- **Photo** : avatar/photo d'alerte et aperçu au signalement passent en
+  `resizeMode="contain"` (fond neutre) → l'image est **affichée en entier**, plus
+  rognée.
+- Tests `votes.service.test.ts`. tsc ✅, eslint ✅, jest **146 passed**.
+
 ### Added — Upload photo réel : avatar + photo d'alerte `[V1.5]`
 Câblage de l'UI d'upload (le backend stocke sur MinIO dev / R2 prod, derrière
 `FEATURE_PHOTO_UPLOAD_ENABLED`).

@@ -287,7 +287,7 @@ export default function SignalementScreen() {
         <View style={styles.section}>
           {photo ? (
             <View style={styles.photoPreviewWrap}>
-              <Image source={{ uri: photo.uri }} style={styles.photoPreview} />
+              <Image source={{ uri: photo.uri }} style={styles.photoPreview} resizeMode="contain" />
               <TouchableOpacity style={styles.photoRemove} onPress={() => setPhoto(null)} hitSlop={8}>
                 <Ionicons name="close-circle" size={26} color={COLORS.noir} />
               </TouchableOpacity>
@@ -496,7 +496,7 @@ const styles = StyleSheet.create({
 
   // Média
   photoPreviewWrap: { position: 'relative', marginBottom: SPACING.sm },
-  photoPreview: { width: '100%', height: 180, borderRadius: RADIUS.card, borderWidth: 1, borderColor: COLORS.border },
+  photoPreview: { width: '100%', height: 220, borderRadius: RADIUS.card, borderWidth: 1, borderColor: COLORS.border, backgroundColor: COLORS.fond },
   photoRemove: {
     position: 'absolute',
     top: SPACING.sm,

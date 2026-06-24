@@ -3,7 +3,7 @@ import MapView, { Marker } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
 import { BottomSheet } from '@/components/shared/BottomSheet';
 import { Badge } from '@/components/ui/Badge';
-import { Alert } from '@/types/alert.types';
+import { Alert, VoteType } from '@/types/alert.types';
 import { COLORS } from '@/constants/colors';
 import { FONT, RADIUS, SPACING, withAlpha } from '@/constants/theme';
 import { FEATURES } from '@/constants/config';
@@ -15,6 +15,9 @@ interface Props {
   /** True when the current user authored this alert — the author cannot vote
    *  on their own alert (mirrors the backend 403 guard). */
   isOwnAlert?: boolean;
+  /** Vote courant de l'utilisateur sur cette alerte (null = pas encore voté).
+   *  Met en évidence le bouton choisi et permet de basculer son vote. */
+  myVote?: VoteType | null;
   voteError?: string | null;
   onClose: () => void;
   onConfirm: (alertId: string) => void;
@@ -36,7 +39,7 @@ function countdown(expiresAt: string | null): string | null {
   return diffMin < 60 ? `expire dans ${diffMin} min` : `expire dans ${Math.floor(diffMin / 60)} h`;
 }
 
-export function AlertDetailSheet({ alert, isAuthenticated, isOwnAlert, voteError, onClose, onConfirm, onInvalidate }: Props) {
+export function AlertDetailSheet({ alert, isAuthenticated, isOwnAlert, myVote, voteError, onClose, onConfirm, onInvalidate }: Props) {
   // Masquer la fiche pour un type désactivé par feature flag (Cactus).
   if (!alert || !isAlertTypeVisible(alert.type, FEATURES.CACTUS_ENABLED)) return null;
 
@@ -94,11 +97,11 @@ export function AlertDetailSheet({ alert, isAuthenticated, isOwnAlert, voteError
           </View>
         ) : null}
 
-        {/* Photo [V1.5] */}
+        {/* Photo [V1.5] — affichée en entier (contain), jamais rognée */}
         {alert.photoUrl ? (
           <View style={styles.block}>
             <Text style={styles.blockLabel}>Photo</Text>
-            <Image source={{ uri: alert.photoUrl }} style={styles.photo} resizeMode="cover" />
+            <Image source={{ uri: alert.photoUrl }} style={styles.photo} resizeMode="contain" />
           </View>
         ) : null}
 
@@ -130,16 +133,25 @@ export function AlertDetailSheet({ alert, isAuthenticated, isOwnAlert, voteError
           )
         ) : (
           !expired && (
-            <View style={styles.voteRow}>
-              <VoteButton
-                kind="confirm"
-                onPress={() => onConfirm(alert.id)}
-              />
-              <VoteButton
-                kind="invalidate"
-                onPress={() => onInvalidate(alert.id)}
-              />
-            </View>
+            <>
+              {myVote ? (
+                <Text style={styles.myVoteHint}>
+                  {myVote === 'CONFIRM' ? 'Vous avez confirmé' : 'Vous avez invalidé'} cette alerte — touchez pour changer.
+                </Text>
+              ) : null}
+              <View style={styles.voteRow}>
+                <VoteButton
+                  kind="confirm"
+                  selected={myVote === 'CONFIRM'}
+                  onPress={() => onConfirm(alert.id)}
+                />
+                <VoteButton
+                  kind="invalidate"
+                  selected={myVote === 'INVALIDATE'}
+                  onPress={() => onInvalidate(alert.id)}
+                />
+              </View>
+            </>
           )
         )}
       </View>
@@ -147,16 +159,22 @@ export function AlertDetailSheet({ alert, isAuthenticated, isOwnAlert, voteError
   );
 }
 
-function VoteButton({ kind, onPress }: { kind: 'confirm' | 'invalidate'; onPress: () => void }) {
+function VoteButton({ kind, selected, onPress }: { kind: 'confirm' | 'invalidate'; selected?: boolean; onPress: () => void }) {
   const isConfirm = kind === 'confirm';
-  const color = isConfirm ? COLORS.cactus : COLORS.grisTexte;
+  const accent = isConfirm ? COLORS.cactus : COLORS.grisTexte;
+  // Selected → fond teinté + texte/icône accentués ; sinon contour neutre.
+  const color = selected ? '#FFFFFF' : accent;
   return (
     <TouchableOpacity
       onPress={onPress}
       activeOpacity={0.8}
-      style={[styles.voteBtn, { borderColor: isConfirm ? COLORS.cactus : COLORS.border }]}
+      style={[
+        styles.voteBtn,
+        { borderColor: isConfirm ? COLORS.cactus : COLORS.border },
+        selected && { backgroundColor: accent, borderColor: accent },
+      ]}
     >
-      <Ionicons name={isConfirm ? 'thumbs-up-outline' : 'thumbs-down-outline'} size={20} color={color} />
+      <Ionicons name={isConfirm ? 'thumbs-up' : 'thumbs-down'} size={20} color={color} />
       <Text style={[styles.voteLabel, { color }]}>{isConfirm ? 'Confirmer' : 'Invalider'}</Text>
     </TouchableOpacity>
   );
@@ -183,7 +201,8 @@ const styles = StyleSheet.create({
   block: { marginTop: SPACING.base },
   blockLabel: { fontFamily: FONT.medium, fontSize: 14, color: COLORS.grisTexte, marginBottom: 6 },
   comment: { fontFamily: FONT.regular, fontSize: 15, lineHeight: 22, color: COLORS.grisTexte },
-  photo: { width: '100%', height: 200, borderRadius: RADIUS.card, borderWidth: 1, borderColor: COLORS.border },
+  photo: { width: '100%', height: 220, borderRadius: RADIUS.card, borderWidth: 1, borderColor: COLORS.border, backgroundColor: COLORS.fond },
+  myVoteHint: { fontFamily: FONT.medium, fontSize: 13, color: COLORS.textSecondary, marginTop: SPACING.base, textAlign: 'center' },
   metaCard: { backgroundColor: COLORS.fond, borderRadius: RADIUS.card, padding: 14, marginTop: SPACING.base },
   metaLabel: { fontFamily: FONT.regular, fontSize: 12, color: COLORS.textSecondary },
   metaValue: { fontFamily: FONT.bold, fontSize: 18, color: COLORS.noir, marginTop: 2 },

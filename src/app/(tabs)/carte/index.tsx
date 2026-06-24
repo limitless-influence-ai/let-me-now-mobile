@@ -17,7 +17,7 @@ import { useWebSocket } from '@/hooks/useWebSocket';
 import { useAuthStore } from '@/store/auth.store';
 import { useMapStore } from '@/store/map.store';
 import { alertsService } from '@/services/alerts.service';
-import { Alert } from '@/types/alert.types';
+import { Alert, VoteType } from '@/types/alert.types';
 import { COLORS } from '@/constants/colors';
 import { CONFIG, FEATURES } from '@/constants/config';
 import { FONT, RADIUS, SPACING, SHADOW, ALERT_TYPE_META } from '@/constants/theme';
@@ -99,6 +99,8 @@ export default function CarteScreen() {
   const [filterVisible, setFilterVisible] = useState(false);
   const [cactusVisible, setCactusVisible] = useState(false);
   const [voteError, setVoteError] = useState<string | null>(null);
+  // [V1.5] Vote courant de l'utilisateur sur l'alerte ouverte (null = pas voté).
+  const [myVote, setMyVote] = useState<VoteType | null>(null);
   const [tooltipAlert, setTooltipAlert] = useState<Alert | null>(null);
   const [activeFilters, setActiveFilters] = useState({ agression: true, homophobe: true, pickpocket: true, cactus: true });
   const [currentLatDelta, setCurrentLatDelta] = useState(0.005);
@@ -218,17 +220,36 @@ export default function CarteScreen() {
     setVoteError(null);
   }
 
+  // [V1.5] Récupère le vote courant à l'ouverture de la fiche (connecté, alerte
+  // d'autrui) pour mettre en évidence le bouton choisi au lieu d'un vote vierge.
+  useEffect(() => {
+    if (!selectedAlert || !user || selectedAlert.userId === user.id) {
+      setMyVote(null);
+      return;
+    }
+    let active = true;
+    alertsService
+      .getMyVote(selectedAlert.id)
+      .then((v) => { if (active) setMyVote(v); })
+      .catch(() => { if (active) setMyVote(null); });
+    return () => { active = false; };
+  }, [selectedAlert, user]);
+
   async function handleVote(alertId: string, type: 'CONFIRM' | 'INVALIDATE') {
     setVoteError(null);
+    const previous = myVote;
+    setMyVote(type); // optimiste : on reflète le choix sans fermer la fiche
     try {
       await alertsService.vote(alertId, type);
-      setSelectedAlert(null);
     } catch (err: unknown) {
-      const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
-      if (detail === 'Cannot vote on your own alert') {
-        setVoteError('Vous ne pouvez pas voter sur votre propre alerte');
+      setMyVote(previous); // revert si l'envoi échoue
+      const code = (err as { response?: { data?: { error_code?: string } } })?.response?.data?.error_code;
+      if (code === 'SELF_VOTE_FORBIDDEN') {
+        setVoteError('Vous ne pouvez pas voter sur votre propre alerte.');
+      } else if (code === 'EMAIL_NOT_VERIFIED') {
+        setVoteError('Vérifiez votre email pour pouvoir voter.');
       } else {
-        setVoteError(detail ?? 'Erreur lors du vote');
+        setVoteError('Erreur lors du vote. Réessayez.');
       }
     }
   }
@@ -395,6 +416,7 @@ export default function CarteScreen() {
         alert={selectedAlert}
         isAuthenticated={isAuthenticated}
         isOwnAlert={!!user && selectedAlert?.userId === user.id}
+        myVote={myVote}
         voteError={voteError}
         onClose={() => { setSelectedAlert(null); setVoteError(null); autoOpenedAlertIdRef.current = null; }}
         onConfirm={(id) => handleVote(id, 'CONFIRM')}

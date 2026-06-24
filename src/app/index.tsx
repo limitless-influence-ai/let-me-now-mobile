@@ -26,7 +26,8 @@ export default function SplashScreen() {
         duration: 200,
         useNativeDriver: false,
       }).start(() => {
-        router.replace('/(tabs)/carte');
+        // Option A : le lancement ouvre la page d'accueil (et non la carte).
+        router.replace('/(tabs)/accueil');
       });
     }
   }, [isLoading]);

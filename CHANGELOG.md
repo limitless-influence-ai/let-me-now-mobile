@@ -5,6 +5,14 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Added — Page d'accueil (nouvel onglet · Option A)
+Nouvel onglet **Accueil** en tête du footer (5 onglets : Accueil · Map · Live · Alertes · Profil, icône maison). Le lancement ouvre désormais l'**Accueil** (Splash → vérif session → Accueil) au lieu de la carte ; la carte reste à un tap.
+- **Écran** `app/(tabs)/accueil/index.tsx` : Hero proximité (gros compteur), actions rapides, mini-carte cliquable, dernières alertes proches (réutilise `AlertCard`), bloc contextuel.
+- **Visiteur vs connecté** : visiteur = instantané REST + **pull-to-refresh** + carte d'incitation (conversion) ; connecté = **temps réel** (WebSocket monté sur l'écran, pastille « En direct » pulsée) + stats perso (crédibilité/score) + zones chaudes. Signaler → actif (connecté) ou invite connexion (visiteur).
+- **États** : chargement (skeleton), aucune alerte proche, erreur réseau (réessayer), refresh.
+- **3 nouveaux composants** : `HeroProximity`, `QuickActions`, `StatusIndicator` (`components/home/`). Logique hors-JSX : `hooks/useHome.ts` ; helpers purs `lib/geo.ts` + `lib/homeAlerts.ts`.
+- CTA noir = engagement (tuile Signaler). Tests `geo.test.ts` + `homeAlerts.test.ts`. tsc ✅, eslint ✅, **jest 153 passed**.
+
 ### Added/Fixed — Retour visuel du vote + photo affichée en entier `[V1.5]`
 - **Vote** : la fiche d'alerte récupère le vote courant (`alertsService.getMyVote`
   → `GET /alerts/{id}/votes/me`) à l'ouverture et **met en évidence le bouton choisi**

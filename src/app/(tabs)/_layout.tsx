@@ -25,7 +25,8 @@ export default function TabsLayout() {
   const triggerLocate = useMapStore((s) => s.triggerLocate);
   const [unreadCount, setUnreadCount] = useState(0);
 
-  const isOnMap = pathname === '/carte' || pathname.endsWith('/carte/index') || pathname === '/';
+  // FAB « signaler » + bouton localiser : carte uniquement (pas sur l'accueil).
+  const isOnMap = pathname === '/carte' || pathname.endsWith('/carte/index');
 
   // MVP-01 — register Expo push token with backend
   useEffect(() => {
@@ -92,6 +93,13 @@ export default function TabsLayout() {
           tabBarLabelStyle: { fontFamily: FONT.medium, fontSize: 11 },
         }}
       >
+        <Tabs.Screen
+          name="accueil/index"
+          options={{
+            title: 'Accueil',
+            tabBarIcon: ({ color, size }) => <Ionicons name="home-outline" size={size} color={color} />,
+          }}
+        />
         <Tabs.Screen
           name="carte/index"
           options={{

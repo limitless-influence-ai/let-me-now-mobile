@@ -1,5 +1,6 @@
 import api from './api';
 import { Alert, AlertCreate } from '@/types/alert.types';
+import { buildPhotoFormData, PickedImage } from '@/lib/photoUpload';
 import {
   DEMO_MODE,
   buildMockAlerts,
@@ -43,6 +44,16 @@ export const alertsService = {
     return mapAlert(data);
   },
 
+  // [V1.5] Upload d'une photo d'alerte (multipart → MinIO/R2, derrière le flag
+  // → 404 si OFF). Renvoie l'URL publique à passer ensuite à create({ photoUrl }).
+  uploadPhoto: async (asset: PickedImage): Promise<string> => {
+    if (DEMO_MODE) return asset.uri;
+    const { data } = await api.post('/api/v1/alerts/photo', buildPhotoFormData(asset), {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return data.url as string;
+  },
+
   create: async (payload: AlertCreate): Promise<Alert> => {
     if (DEMO_MODE) return registerDemoAlert(payload);
     const { data } = await api.post('/api/v1/alerts', {
@@ -52,6 +63,7 @@ export const alertsService = {
       location_label: payload.locationLabel,
       comment: payload.comment ?? null,
       radius_m: payload.radiusM ?? 500,
+      photo_url: payload.photoUrl ?? null,
     });
     return mapAlert(data);
   },

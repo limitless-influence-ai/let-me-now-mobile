@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Alert, StyleSheet, ScrollView, Image } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Alert, StyleSheet, ScrollView, Image, ActivityIndicator } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as SecureStore from 'expo-secure-store';
@@ -11,6 +11,7 @@ import { useAuthStore } from '@/store/auth.store';
 import { authService } from '@/services/auth.service';
 import { useNotifPreferences } from '@/hooks/useNotifPreferences';
 import { credibilityText } from '@/lib/credibility';
+import { isUploadUnavailable, uploadErrorMessage } from '@/lib/photoUpload';
 import { canEditPseudo, cooldownMessage, isValidPseudo, PSEUDO_MIN, PSEUDO_MAX } from '@/lib/pseudoCooldown';
 import { COLORS } from '@/constants/colors';
 import { FONT, RADIUS, SPACING, TEXT } from '@/constants/theme';
@@ -38,6 +39,8 @@ export default function ProfilScreen() {
   );
   const [isDeleting, setIsDeleting] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  // [V1.5] État d'upload de l'avatar (réel, via MinIO/R2 derrière le flag).
+  const [avatarUploading, setAvatarUploading] = useState(false);
 
   // [V1.5] Édition du pseudo avec cooldown 14 j (FEATURE_PSEUDO_EDIT_ENABLED côté backend).
   const [pseudoInput, setPseudoInput] = useState(user?.pseudo ?? '');
@@ -118,14 +121,38 @@ export default function ProfilScreen() {
   }
 
   async function handlePickPhoto() {
+    if (avatarUploading) return;
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
       Alert.alert('Permission requise', "Autorisez l'accès à la galerie pour modifier votre photo.");
       return;
     }
-    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: true, aspect: [1, 1], quality: 0.8 });
-    if (!result.canceled) {
-      Alert.alert('Photo sélectionnée', 'Upload vers R2 disponible en V1.5');
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+    if (result.canceled || !result.assets?.[0]) return;
+
+    const asset = result.assets[0];
+    setAvatarUploading(true);
+    try {
+      const updated = await authService.uploadAvatar({
+        uri: asset.uri,
+        mimeType: asset.mimeType,
+        fileName: asset.fileName,
+      });
+      setUser(updated);
+    } catch (err: unknown) {
+      // Flag OFF (501) ou feature absente → message « bientôt disponible » ;
+      // sinon message d'erreur clair. Jamais de crash.
+      Alert.alert(
+        isUploadUnavailable(err) ? 'Bientôt disponible' : 'Erreur',
+        uploadErrorMessage(err),
+      );
+    } finally {
+      setAvatarUploading(false);
     }
   }
 
@@ -149,23 +176,25 @@ export default function ProfilScreen() {
     );
   }
 
-  const avatarUrl = (user as { avatar_url?: string | null }).avatar_url ?? null;
+  const avatarUrl = user.avatarUrl ?? null;
   const initial = user.pseudo?.trim().charAt(0).toUpperCase() || '?';
 
   return (
     <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
       {/* En-tête profil */}
       <View style={styles.profileHeader}>
-        <TouchableOpacity style={styles.avatar} onPress={handlePickPhoto} activeOpacity={0.85}>
-          {avatarUrl ? (
+        <TouchableOpacity style={styles.avatar} onPress={handlePickPhoto} activeOpacity={0.85} disabled={avatarUploading}>
+          {avatarUploading ? (
+            <ActivityIndicator color="#FFFFFF" />
+          ) : avatarUrl ? (
             <Image source={{ uri: avatarUrl }} style={styles.avatarImage} />
           ) : (
             <Text style={styles.avatarInitial}>{initial}</Text>
           )}
         </TouchableOpacity>
 
-        <TouchableOpacity onPress={handlePickPhoto} activeOpacity={0.7}>
-          <Text style={styles.editPhoto}>Modifier la photo</Text>
+        <TouchableOpacity onPress={handlePickPhoto} activeOpacity={0.7} disabled={avatarUploading}>
+          <Text style={styles.editPhoto}>{avatarUploading ? 'Envoi…' : 'Modifier la photo'}</Text>
         </TouchableOpacity>
 
         <Text style={[TEXT.h2, styles.pseudo]}>{user.pseudo}</Text>

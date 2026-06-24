@@ -1,5 +1,6 @@
 import api from './api';
 import { AuthTokens, User } from '@/types/user.types';
+import { buildPhotoFormData, PickedImage } from '@/lib/photoUpload';
 import { DEMO_MODE, DEMO_USER, DEMO_TOKENS } from '@/demo/mock';
 
 function mapTokens(raw: { access_token: string; refresh_token: string }): AuthTokens {
@@ -52,6 +53,18 @@ export const authService = {
   updatePseudo: async (pseudo: string): Promise<User> => {
     if (DEMO_MODE) return { ...DEMO_USER, pseudo };
     const { data } = await api.patch('/api/v1/users/me', { pseudo });
+    return mapUser(data);
+  },
+
+  // [V1.5] Upload de l'avatar (multipart → MinIO/R2 côté backend, derrière
+  // FEATURE_PHOTO_UPLOAD_ENABLED). Renvoie l'utilisateur à jour (avatarUrl).
+  // Flag OFF → le backend répond 501 AVATAR_UPLOAD_NOT_AVAILABLE (géré par
+  // l'appelant via isUploadUnavailable).
+  uploadAvatar: async (asset: PickedImage): Promise<User> => {
+    if (DEMO_MODE) return { ...DEMO_USER, avatarUrl: asset.uri };
+    const { data } = await api.post('/api/v1/users/me/avatar', buildPhotoFormData(asset), {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
     return mapUser(data);
   },
 

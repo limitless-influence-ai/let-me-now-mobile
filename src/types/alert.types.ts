@@ -41,4 +41,7 @@ export interface AlertCreate {
   locationLabel: string;
   comment?: string | null;
   radiusM?: number;
+  // [V1.5] URL de la photo déjà uploadée via alertsService.uploadPhoto (bucket
+  // MinIO/R2). Le backend ne l'accepte que si elle pointe vers son propre bucket.
+  photoUrl?: string | null;
 }

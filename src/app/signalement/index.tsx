@@ -9,13 +9,17 @@ import {
   FlatList,
   TextInput,
   ActivityIndicator,
+  Image,
   Alert as RNAlert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MapView, { Marker } from 'react-native-maps';
 import Slider from '@react-native-community/slider';
+import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
+import { isUploadUnavailable, PickedImage } from '@/lib/photoUpload';
+import { alertsService } from '@/services/alerts.service';
 import { Button } from '@/components/ui/Button';
 import { ComingSoonBadge } from '@/components/ui/ComingSoonBadge';
 import { useAlerts } from '@/hooks/useAlerts';
@@ -60,15 +64,64 @@ export default function SignalementScreen() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [description, setDescription] = useState('');
   const [radiusM, setRadiusM] = useState(100);
+  // [V1.5] Photo optionnelle attachée à l'alerte (uploadée vers MinIO/R2 au
+  // moment de la confirmation, derrière FEATURE_PHOTO_UPLOAD_ENABLED côté backend).
+  const [photo, setPhoto] = useState<PickedImage | null>(null);
 
   const selectedMeta = selectedType ? ALERT_TYPE_META[selectedType] : null;
   const hasPosition = lat !== null && lon !== null;
+
+  async function pickFrom(source: 'camera' | 'library') {
+    const perm =
+      source === 'camera'
+        ? await ImagePicker.requestCameraPermissionsAsync()
+        : await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (perm.status !== 'granted') {
+      RNAlert.alert(
+        'Permission requise',
+        source === 'camera'
+          ? "Autorisez l'accès à la caméra pour prendre une photo."
+          : "Autorisez l'accès à la galerie pour choisir une photo.",
+      );
+      return;
+    }
+    const result =
+      source === 'camera'
+        ? await ImagePicker.launchCameraAsync({ quality: 0.7 })
+        : await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.7 });
+    if (result.canceled || !result.assets?.[0]) return;
+    const asset = result.assets[0];
+    setPhoto({ uri: asset.uri, mimeType: asset.mimeType, fileName: asset.fileName });
+  }
+
+  function handleAddPhoto() {
+    RNAlert.alert('Ajouter une photo', undefined, [
+      { text: 'Prendre une photo', onPress: () => pickFrom('camera') },
+      { text: 'Choisir dans la galerie', onPress: () => pickFrom('library') },
+      { text: 'Annuler', style: 'cancel' },
+    ]);
+  }
 
   async function handleConfirm() {
     if (!selectedType || lat === null || lon === null) return;
     setSubmitError(null);
     setIsSubmitting(true);
     try {
+      // Upload de la photo d'abord (si présente) → on récupère l'URL bucket.
+      // Si la feature est éteinte côté serveur (404/501), on informe et on crée
+      // l'alerte SANS photo plutôt que de bloquer le signalement.
+      let photoUrl: string | null = null;
+      if (photo) {
+        try {
+          photoUrl = await alertsService.uploadPhoto(photo);
+        } catch (err: unknown) {
+          if (isUploadUnavailable(err)) {
+            RNAlert.alert('Bientôt disponible', "L'ajout de photo n'est pas encore disponible.");
+          } else {
+            throw err;
+          }
+        }
+      }
       await createAlert({
         type: selectedType,
         lat,
@@ -76,6 +129,7 @@ export default function SignalementScreen() {
         locationLabel: await reverseGeocode(lat, lon),
         comment: description || null,
         radiusM,
+        photoUrl,
       });
       router.replace('/(tabs)/carte');
     } catch (err: unknown) {
@@ -231,20 +285,25 @@ export default function SignalementScreen() {
 
         {/* 5) Média */}
         <View style={styles.section}>
+          {photo ? (
+            <View style={styles.photoPreviewWrap}>
+              <Image source={{ uri: photo.uri }} style={styles.photoPreview} />
+              <TouchableOpacity style={styles.photoRemove} onPress={() => setPhoto(null)} hitSlop={8}>
+                <Ionicons name="close-circle" size={26} color={COLORS.noir} />
+              </TouchableOpacity>
+            </View>
+          ) : null}
           <View style={styles.mediaRow}>
             <Button
               label=""
               variant="tertiary"
-              onPress={() => RNAlert.alert('Photo', 'Upload photo disponible en V1.5')}
+              onPress={handleAddPhoto}
               style={styles.mediaButton}
               icon={
                 <View style={styles.mediaInner}>
                   <Ionicons name="camera-outline" size={22} color={COLORS.noir} />
                   <View style={styles.mediaLabelRow}>
-                    <Text style={styles.mediaLabel}>Photo</Text>
-                    <View style={[styles.flagBadge, styles.flagV15]}>
-                      <Text style={[styles.flagText, styles.flagV15Text]}>V1.5</Text>
-                    </View>
+                    <Text style={styles.mediaLabel}>{photo ? 'Changer la photo' : 'Photo'}</Text>
                   </View>
                 </View>
               }
@@ -436,6 +495,15 @@ const styles = StyleSheet.create({
   counter: { fontFamily: FONT.regular, fontSize: 12, color: COLORS.textSecondary, textAlign: 'right' },
 
   // Média
+  photoPreviewWrap: { position: 'relative', marginBottom: SPACING.sm },
+  photoPreview: { width: '100%', height: 180, borderRadius: RADIUS.card, borderWidth: 1, borderColor: COLORS.border },
+  photoRemove: {
+    position: 'absolute',
+    top: SPACING.sm,
+    right: SPACING.sm,
+    backgroundColor: COLORS.surface,
+    borderRadius: 14,
+  },
   mediaRow: { flexDirection: 'row', gap: SPACING.md },
   mediaButton: { flex: 1, height: 'auto', paddingVertical: 14, paddingHorizontal: SPACING.md },
   mediaInner: { flexDirection: 'column', alignItems: 'center', gap: 6 },

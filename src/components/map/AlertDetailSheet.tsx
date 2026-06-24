@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
 import { BottomSheet } from '@/components/shared/BottomSheet';
@@ -94,6 +94,14 @@ export function AlertDetailSheet({ alert, isAuthenticated, isOwnAlert, voteError
           </View>
         ) : null}
 
+        {/* Photo [V1.5] */}
+        {alert.photoUrl ? (
+          <View style={styles.block}>
+            <Text style={styles.blockLabel}>Photo</Text>
+            <Image source={{ uri: alert.photoUrl }} style={styles.photo} resizeMode="cover" />
+          </View>
+        ) : null}
+
         {/* Méta : rayon */}
         {alert.radiusM ? (
           <View style={styles.metaCard}>
@@ -175,6 +183,7 @@ const styles = StyleSheet.create({
   block: { marginTop: SPACING.base },
   blockLabel: { fontFamily: FONT.medium, fontSize: 14, color: COLORS.grisTexte, marginBottom: 6 },
   comment: { fontFamily: FONT.regular, fontSize: 15, lineHeight: 22, color: COLORS.grisTexte },
+  photo: { width: '100%', height: 200, borderRadius: RADIUS.card, borderWidth: 1, borderColor: COLORS.border },
   metaCard: { backgroundColor: COLORS.fond, borderRadius: RADIUS.card, padding: 14, marginTop: SPACING.base },
   metaLabel: { fontFamily: FONT.regular, fontSize: 12, color: COLORS.textSecondary },
   metaValue: { fontFamily: FONT.bold, fontSize: 18, color: COLORS.noir, marginTop: 2 },

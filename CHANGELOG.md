@@ -5,6 +5,25 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Added — Upload photo réel : avatar + photo d'alerte `[V1.5]`
+Câblage de l'UI d'upload (le backend stocke sur MinIO dev / R2 prod, derrière
+`FEATURE_PHOTO_UPLOAD_ENABLED`).
+- **Avatar** (écran Profil) : « Modifier la photo » réellement fonctionnel —
+  sélection via `expo-image-picker`, upload multipart (`authService.uploadAvatar`),
+  avatar mis à jour à l'écran, **indicateur de chargement**. Flag OFF (501) →
+  alerte « Bientôt disponible » (pas de crash). Corrige au passage la lecture de
+  l'avatar (`user.avatarUrl`, l'ancien cast `avatar_url` ne s'affichait jamais).
+- **Photo d'alerte** (écran Signalement) : bouton Photo fonctionnel (caméra **ou**
+  galerie avec demande de permission), **aperçu + retrait** avant envoi. À la
+  confirmation : upload (`alertsService.uploadPhoto`) puis création de l'alerte
+  avec l'URL. Feature off (404/501) → l'alerte est créée **sans** photo (message
+  informatif, signalement jamais bloqué).
+- **Fiche détail** : la photo de l'alerte s'affiche si présente (`alert.photoUrl`).
+- Helpers purs `src/lib/photoUpload.ts` (`buildPhotoFilePart`/`buildPhotoFormData`,
+  `isUploadUnavailable`, `uploadErrorMessage` — messages normalisés). `AlertCreate`
+  étendu (`photoUrl`). Tests : `photoUpload.test.ts` + `photoUpload.service.test.ts`.
+  tsc ✅, eslint ✅, jest **143 passed**.
+
 ### Changed — WebSocket authentifié (connectés) + fallback REST (visiteurs)
 Contrepartie mobile de l'auth-only WS backend. Le temps réel est **réservé aux
 utilisateurs connectés** ; le visiteur consulte la carte en REST sans live.

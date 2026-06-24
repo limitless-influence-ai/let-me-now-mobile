@@ -140,10 +140,18 @@ export default function TabsLayout() {
         />
       </Tabs>
 
-      {isOnMap && <FAB onPress={handleFABPress} disabled={banned} />}
+      {/* Signaler nécessite un compte → FAB réservé aux connectés (le visiteur
+          n'a qu'une action : se connecter, via le bandeau de la carte). */}
+      {isOnMap && isAuthenticated && <FAB onPress={handleFABPress} disabled={banned} />}
 
+      {/* Bouton géoloc accessible à tous. Pour le visiteur, on le remonte au-dessus
+          du bandeau « Rejoins la communauté » pour éviter tout chevauchement. */}
       {isOnMap && (
-        <TouchableOpacity style={styles.locateButton} onPress={triggerLocate} activeOpacity={0.85}>
+        <TouchableOpacity
+          style={[styles.locateButton, !isAuthenticated && styles.locateAboveBanner]}
+          onPress={triggerLocate}
+          activeOpacity={0.85}
+        >
           <Ionicons name="locate" size={22} color={COLORS.turquoiseDark} />
         </TouchableOpacity>
       )}
@@ -164,5 +172,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     ...SHADOW.soft,
+  },
+  // Visiteur : remonté au-dessus du bandeau « Rejoins la communauté » (≈132px
+  // de haut + 16px de marge basse) pour rester détaché du CTA, sans superposition.
+  locateAboveBanner: {
+    bottom: 164,
   },
 });

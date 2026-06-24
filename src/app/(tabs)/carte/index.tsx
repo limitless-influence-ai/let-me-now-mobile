@@ -405,7 +405,7 @@ export default function CarteScreen() {
           <Text style={styles.inviteText}>Connecte-toi pour signaler, filtrer et voter sur les alertes.</Text>
           <Button
             label="Se connecter / S'inscrire"
-            variant="secondary"
+            variant="primary"
             size="sm"
             onPress={() => router.push('/auth/connexion')}
           />

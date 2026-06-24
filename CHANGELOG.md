@@ -5,6 +5,13 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Fixed — Bandeau visiteur de la carte (CTA noir, sans chevauchement)
+Le bandeau « Rejoins la communauté » (carte, visiteur) était mal agencé.
+- CTA « Se connecter / S'inscrire » passé en **noir** (`variant="primary"`, #1A1A1A, texte blanc) — convention « noir = engagement » (avant : turquoise).
+- **FAB « + » (signaler) masqué pour le visiteur** (réservé aux connectés) : signaler exige un compte, le visiteur n'a qu'une action (se connecter). Comportement connecté inchangé.
+- **Bouton géoloc remonté au-dessus du bandeau** pour le visiteur (plus de chevauchement avec le CTA) ; reste accessible. Connecté : position inchangée.
+- tsc ✅, eslint ✅, jest 153 passed.
+
 ### Added — Page d'accueil (nouvel onglet · Option A)
 Nouvel onglet **Accueil** en tête du footer (5 onglets : Accueil · Map · Live · Alertes · Profil, icône maison). Le lancement ouvre désormais l'**Accueil** (Splash → vérif session → Accueil) au lieu de la carte ; la carte reste à un tap.
 - **Écran** `app/(tabs)/accueil/index.tsx` : Hero proximité (gros compteur), actions rapides, mini-carte cliquable, dernières alertes proches (réutilise `AlertCard`), bloc contextuel.
